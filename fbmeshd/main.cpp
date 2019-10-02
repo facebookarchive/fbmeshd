@@ -144,8 +144,6 @@ DEFINE_double(
 //
 // They will be removed in a future version of fbmeshd, at which time using them
 // will result in fbmeshd not starting (as they will not be parsed).
-// TODO T53487225
-DEFINE_int32(monitor_rep_port, 0, "DEPRECATED on 2019-09-04, do not use");
 // TODO T54087050
 DEFINE_bool(enable_watchdog, false, "DEPRECATED on 2019-09-16, do not use");
 DEFINE_int32(watchdog_interval_s, 0, "DEPRECATED on 2019-09-16, do not use");

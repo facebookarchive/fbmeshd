@@ -347,7 +347,7 @@ NetlinkSocket::syncMplsRoutes(uint8_t protocolId, NlMplsRoutes newMplsRouteDb) {
                                      syncDb = std::move(newMplsRouteDb),
                                      protocolId]() mutable {
     try {
-      LOG(INFO) << "Syncing " << syncDb.size() << " mpls routes";
+      VLOG(10) << "Syncing " << syncDb.size() << " mpls routes";
       auto& mplsRoutes = mplsRoutesCache_[protocolId];
       std::unordered_set<int32_t> toDelete;
       // collect label routes to delete
@@ -357,7 +357,7 @@ NetlinkSocket::syncMplsRoutes(uint8_t protocolId, NlMplsRoutes newMplsRouteDb) {
         }
       }
       // delete
-      LOG(INFO) << "Sync: Deleting " << toDelete.size() << " mpls routes";
+      VLOG(10) << "Sync: Deleting " << toDelete.size() << " mpls routes";
       for (auto label : toDelete) {
         auto mplsRouteEntry = mplsRoutes.at(label);
         doDeleteMplsRoute(mplsRouteEntry);
@@ -367,7 +367,7 @@ NetlinkSocket::syncMplsRoutes(uint8_t protocolId, NlMplsRoutes newMplsRouteDb) {
         doAddUpdateMplsRoute(kv.second);
       }
       p.setValue();
-      LOG(INFO) << "Sync done.";
+      VLOG(10) << "Sync done.";
     } catch (std::exception const& ex) {
       LOG(ERROR) << "Error syncing MPLS routeDb with Fib: "
                  << folly::exceptionStr(ex);
@@ -691,10 +691,10 @@ NetlinkSocket::syncUnicastRoutes(
                                      syncDb = std::move(newRouteDb),
                                      protocolId]() mutable {
     try {
-      LOG(INFO) << "Syncing " << syncDb.size() << " routes";
+      VLOG(10) << "Syncing " << syncDb.size() << " routes";
       doSyncUnicastRoutes(protocolId, std::move(syncDb));
       p.setValue();
-      LOG(INFO) << "Sync done.";
+      VLOG(10) << "Sync done.";
     } catch (std::exception const& ex) {
       LOG(ERROR) << "Error syncing unicast routeDb with Fib: "
                  << folly::exceptionStr(ex);
@@ -716,7 +716,7 @@ NetlinkSocket::doSyncUnicastRoutes(uint8_t protocolId, NlUnicastRoutes syncDb) {
     }
   }
   // Delete routes from kernel
-  LOG(INFO) << "Sync: number of routes to delete: " << toDelete.size();
+  VLOG(10) << "Sync: number of routes to delete: " << toDelete.size();
   for (auto it = toDelete.begin(); it != toDelete.end(); ++it) {
     auto const& prefix = *it;
     auto iter = unicastRoutes.find(prefix);
@@ -727,7 +727,7 @@ NetlinkSocket::doSyncUnicastRoutes(uint8_t protocolId, NlUnicastRoutes syncDb) {
   }
 
   // Go over routes in new routeDb, update/add
-  LOG(INFO) << "Sync: number of routes to add: " << syncDb.size();
+  VLOG(10) << "Sync: number of routes to add: " << syncDb.size();
   for (auto& kv : syncDb) {
     doAddUpdateUnicastRoute(kv.second);
   }
@@ -925,7 +925,7 @@ NetlinkSocket::getIfName(int ifIndex) const {
 
 folly::Future<folly::Unit>
 NetlinkSocket::addIfAddress(IfAddress ifAddress) {
-  LOG(INFO) << "NetlinkSocket add IfAddress... " << ifAddress.str();
+  VLOG(10) << "NetlinkSocket add IfAddress... " << ifAddress.str();
 
   folly::Promise<folly::Unit> promise;
   auto future = promise.getFuture();
@@ -944,7 +944,7 @@ NetlinkSocket::addIfAddress(IfAddress ifAddress) {
 
 folly::Future<folly::Unit>
 NetlinkSocket::delIfAddress(IfAddress ifAddress) {
-  LOG(INFO) << "Netlink delete IfAddress... " << ifAddress.str();
+  VLOG(10) << "Netlink delete IfAddress... " << ifAddress.str();
 
   folly::Promise<folly::Unit> promise;
   auto future = promise.getFuture();
@@ -968,7 +968,7 @@ NetlinkSocket::delIfAddress(IfAddress ifAddress) {
 folly::Future<folly::Unit>
 NetlinkSocket::syncIfAddress(
     int ifIndex, std::vector<IfAddress> addresses, int family, int scope) {
-  LOG(INFO) << "Netlink sync IfAddress...";
+  VLOG(10) << "Netlink sync IfAddress...";
 
   folly::Promise<folly::Unit> promise;
   auto future = promise.getFuture();

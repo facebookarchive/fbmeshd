@@ -125,7 +125,7 @@ NetlinkMessage::setMessageType(NetlinkMessage::MessageType type) {
 NetlinkProtocolSocket::NetlinkProtocolSocket(fbzmq::ZmqEventLoop* evl)
     : evl_(evl) {
   nlMessageTimer_ = fbzmq::ZmqTimeout::make(evl_, [this]() noexcept {
-    LOG(INFO) << "Did not receive last ack " << lastSeqNo_;
+    VLOG(10) << "Did not receive last ack " << lastSeqNo_;
     sendNetlinkMessage();
   });
 }
@@ -411,7 +411,7 @@ NetlinkProtocolSocket::recvNetlinkMessage() {
     if (errno == EINTR || errno == EAGAIN) {
       return;
     }
-    LOG(INFO) << "Error in netlink socket receive: " << bytesRead
+    VLOG(10) << "Error in netlink socket receive: " << bytesRead
               << " err: " << folly::errnoStr(std::abs(errno));
     return;
   }
@@ -429,7 +429,7 @@ NetlinkProtocolSocket::getAckCount() const {
 }
 
 NetlinkProtocolSocket::~NetlinkProtocolSocket() {
-  LOG(INFO) << "Closing netlink socket.";
+  VLOG(10) << "Closing netlink socket.";
   close(nlSock_);
 }
 

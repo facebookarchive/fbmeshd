@@ -60,7 +60,7 @@ NetlinkRouteMessage::init(
 
 void
 NetlinkRouteMessage::showRtmMsg(const struct rtmsg* const hdr) const {
-  LOG(INFO) << "Route message data"
+  VLOG(10) << "Route message data"
             << "\nrtm_family:   " << +hdr->rtm_family
             << "\nrtm_dst_len:  " << +hdr->rtm_dst_len
             << "\nrtm_src_len:  " << +hdr->rtm_src_len
@@ -74,7 +74,7 @@ NetlinkRouteMessage::showRtmMsg(const struct rtmsg* const hdr) const {
 
 void
 NetlinkRouteMessage::showRouteAttribute(const struct rtattr* const hdr) const {
-  LOG(INFO) << "Route attributes"
+  VLOG(10) << "Route attributes"
             << "\nrta_len       " << hdr->rta_len << "\nrta_type      "
             << hdr->rta_type;
 }
@@ -351,8 +351,8 @@ NetlinkRouteMessage::showMultiPathAttribues(
     const struct rtattr* const rta) const {
   const struct rtnexthop* const rtnh =
       reinterpret_cast<struct rtnexthop*>(RTA_DATA(rta));
-  LOG(INFO) << "len: " << rtnh->rtnh_len << " flags: " << rtnh->rtnh_flags;
-  LOG(INFO) << "hop: " << rtnh->rtnh_hops << " ifindex: " << rtnh->rtnh_ifindex;
+  VLOG(10) << "len: " << rtnh->rtnh_len << " flags: " << rtnh->rtnh_flags;
+  VLOG(10) << "hop: " << rtnh->rtnh_hops << " ifindex: " << rtnh->rtnh_ifindex;
 
   const struct rtattr* subrta = RTNH_DATA(rtnh);
   int len = rtnh->rtnh_len;
@@ -821,7 +821,7 @@ NetlinkAddrMessage::addOrDeleteIfAddress(
     return ResultCode::NO_IP;
   }
 
-  LOG(INFO) << (type == RTM_NEWADDR ? "Adding" : "Deleting") << " IP address "
+  VLOG(10) << (type == RTM_NEWADDR ? "Adding" : "Deleting") << " IP address "
             << ifAddr.str();
   init(type);
   // initialize netlink address fields

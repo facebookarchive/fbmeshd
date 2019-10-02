@@ -7,10 +7,9 @@
 
 #pragma once
 
-#include <fbzmq/async/ZmqEventLoop.h>
-#include <fbzmq/async/ZmqTimeout.h>
-#include <fbzmq/zmq/Context.h>
 #include <folly/SocketAddress.h>
+#include <folly/io/async/AsyncTimeout.h>
+#include <folly/io/async/EventBase.h>
 
 #include <fbmeshd/802.11s/Nl80211Handler.h>
 #include <fbmeshd/gateway-11s-root-route-programmer/Gateway11sRootRouteProgrammer.h>
@@ -20,10 +19,10 @@
 
 namespace fbmeshd {
 
-class GatewayConnectivityMonitor : public fbzmq::ZmqEventLoop,
-                                   public RouteDampener {
+class GatewayConnectivityMonitor : public RouteDampener {
  public:
   explicit GatewayConnectivityMonitor(
+      folly::EventBase* evb,
       Nl80211Handler& nlHandler,
       const std::string& monitoredInterface,
       std::vector<folly::SocketAddress> monitoredAddresses,
@@ -72,7 +71,7 @@ class GatewayConnectivityMonitor : public fbzmq::ZmqEventLoop,
   Gateway11sRootRouteProgrammer* gateway11sRootRouteProgrammer_{nullptr};
   Routing* routing_{nullptr};
 
-  std::unique_ptr<fbzmq::ZmqTimeout> connectivityCheckTimer_;
+  std::unique_ptr<folly::AsyncTimeout> connectivityCheckTimer_;
 
   StatsClient& statsClient_;
 

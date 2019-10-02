@@ -12,17 +12,21 @@
 using namespace fbmeshd;
 
 RouteDampener::RouteDampener(
-    fbzmq::ZmqEventLoop* eventLoop,
+    folly::EventBase* evb,
     unsigned int penalty,
     unsigned int suppressLimit,
     unsigned int reuseLimit,
     std::chrono::seconds halfLife,
     std::chrono::seconds maxSuppressLimit)
-    : eventLoop_{eventLoop},
-      halfLifeTimer_{fbzmq::ZmqTimeout::make(
-          eventLoop_, [this]() mutable noexcept { halfLifeTimerExpired(); })},
-      maxSuppressLimitTimer_{fbzmq::ZmqTimeout::make(
-          eventLoop_,
+    : evb_{evb},
+      halfLifeTimer_{folly::AsyncTimeout::make(
+          *evb_,
+          [this]() mutable noexcept {
+            halfLifeTimerExpired();
+            halfLifeTimer_->scheduleTimeout(halfLife_);
+          })},
+      maxSuppressLimitTimer_{folly::AsyncTimeout::make(
+          *evb_,
           [this]() mutable noexcept { maxSuppressLimitTimerExpired(); })},
       penalty_{penalty},
       suppressLimit_{suppressLimit},
@@ -35,28 +39,28 @@ RouteDampener::RouteDampener(
   }
 }
 
-bool
-RouteDampener::isValid() const {
+bool RouteDampener::isValid() const {
+  VLOG(8) << folly::sformat("RouteDampener::{}()", __func__);
   const unsigned int maxPenalty{reuseLimit_ *
                                 (1 << (maxSuppressLimit_ / halfLife_))};
   return penalty_ <= maxPenalty;
 }
 
-unsigned int
-RouteDampener::getHistory() const {
+unsigned int RouteDampener::getHistory() const {
+  VLOG(8) << folly::sformat("RouteDampener::{}()", __func__);
   return history_;
 }
 
-void
-RouteDampener::setHistory(unsigned int newHistory) {
+void RouteDampener::setHistory(unsigned int newHistory) {
+  VLOG(8) << folly::sformat("RouteDampener::{}()", __func__);
   history_ = newHistory;
   setRdStat("default_route_history", history_);
   LOG(INFO) << "route dampener history set to " << history_;
 }
 
-void
-RouteDampener::flap() {
-  eventLoop_->runImmediatelyOrInEventLoop([this]() {
+void RouteDampener::flap() {
+  VLOG(8) << folly::sformat("RouteDampener::{}()", __func__);
+  evb_->runImmediatelyOrRunInEventBaseThreadAndWait([this]() {
     setHistory(history_ + penalty_);
 
     LOG(INFO) << "route dampener received flap";
@@ -72,16 +76,14 @@ RouteDampener::flap() {
   });
 }
 
-bool
-RouteDampener::isDampened() const {
+bool RouteDampener::isDampened() const {
+  VLOG(8) << folly::sformat("RouteDampener::{}()", __func__);
   return dampened_;
 }
 
-void
-RouteDampener::undampenImpl() {
+void RouteDampener::undampenImpl() {
+  VLOG(8) << folly::sformat("RouteDampener::{}()", __func__);
   CHECK(dampened_);
-
-  LOG(INFO) << "route dampener undampening route ";
 
   dampened_ = false;
   stopMaxSuppressLimitTimer();
@@ -89,8 +91,8 @@ RouteDampener::undampenImpl() {
   setRdStat("default_route_dampened", 0);
 }
 
-void
-RouteDampener::halfLifeTimerExpired() {
+void RouteDampener::halfLifeTimerExpired() {
+  VLOG(8) << folly::sformat("RouteDampener::{}()", __func__);
   setHistory(history_ / 2);
 
   LOG(INFO) << "route dampener half life timer expired";
@@ -107,8 +109,8 @@ RouteDampener::halfLifeTimerExpired() {
   userHalfLifeTimerExpired();
 }
 
-void
-RouteDampener::maxSuppressLimitTimerExpired() {
+void RouteDampener::maxSuppressLimitTimerExpired() {
+  VLOG(8) << folly::sformat("RouteDampener::{}()", __func__);
   LOG(INFO) << "route dampener max suppress limit timer expired";
   if (dampened_) {
     setHistory(0);
@@ -118,28 +120,28 @@ RouteDampener::maxSuppressLimitTimerExpired() {
   userSuppressLimitTimerExpired();
 }
 
-void
-RouteDampener::startHalfLifeTimer() {
+void RouteDampener::startHalfLifeTimer() {
+  VLOG(8) << folly::sformat("RouteDampener::{}()", __func__);
   DCHECK_NOTNULL(halfLifeTimer_.get());
-  halfLifeTimer_->scheduleTimeout(halfLife_, true);
+  halfLifeTimer_->scheduleTimeout(halfLife_);
 }
 
-void
-RouteDampener::startMaxSuppressLimitTimer() {
+void RouteDampener::startMaxSuppressLimitTimer() {
+  VLOG(8) << folly::sformat("RouteDampener::{}()", __func__);
   DCHECK_NOTNULL(maxSuppressLimitTimer_.get());
-  maxSuppressLimitTimer_->scheduleTimeout(maxSuppressLimit_, false);
+  maxSuppressLimitTimer_->scheduleTimeout(maxSuppressLimit_);
 }
 
-void
-RouteDampener::stopMaxSuppressLimitTimer() {
+void RouteDampener::stopMaxSuppressLimitTimer() {
+  VLOG(8) << folly::sformat("RouteDampener::{}()", __func__);
   DCHECK_NOTNULL(maxSuppressLimitTimer_.get());
   if (maxSuppressLimitTimer_->isScheduled()) {
     maxSuppressLimitTimer_->cancelTimeout();
   }
 }
 
-void
-RouteDampener::stopHalfLifeTimer() {
+void RouteDampener::stopHalfLifeTimer() {
+  VLOG(8) << folly::sformat("RouteDampener::{}()", __func__);
   DCHECK_NOTNULL(halfLifeTimer_.get());
   if (halfLifeTimer_->isScheduled()) {
     halfLifeTimer_->cancelTimeout();

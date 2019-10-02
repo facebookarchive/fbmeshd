@@ -327,7 +327,9 @@ main(int argc, char* argv[]) {
 
   StatsClient statsClient{};
 
+  LOG(INFO) << "Creating GatewayConnectivityMonitor...";
   GatewayConnectivityMonitor gatewayConnectivityMonitor{
+      &routingEventLoop,
       nlHandler,
       FLAGS_gateway_connectivity_monitor_interface,
       std::move(gatewayConnectivityMonitorAddresses),
@@ -343,14 +345,6 @@ main(int argc, char* argv[]) {
       gateway11sRootRouteProgrammer.get(),
       routing.get(),
       statsClient};
-
-  static constexpr auto gwConnectivityMonitorId{"GatewayConnectivityMonitor"};
-  allThreads.emplace_back(std::thread([&gatewayConnectivityMonitor]() noexcept {
-    LOG(INFO) << "Starting GatewayConnectivityMonitor thread...";
-    folly::setThreadName(gwConnectivityMonitorId);
-    gatewayConnectivityMonitor.run();
-    LOG(INFO) << "GatewayConnectivityMonitor thread stopped.";
-  }));
 
   // create fbmeshd thrift server
   auto server = std::make_unique<apache::thrift::ThriftServer>();
@@ -383,9 +377,6 @@ main(int argc, char* argv[]) {
 
   LOG(INFO) << "Reclaiming thrift server thread";
   server->stop();
-
-  gatewayConnectivityMonitor.stop();
-  gatewayConnectivityMonitor.waitUntilStopped();
 
   syncRoutes80211s->stop();
   syncRoutes80211s->waitUntilStopped();

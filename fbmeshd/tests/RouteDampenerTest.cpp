@@ -12,10 +12,9 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include <fbzmq/async/ZmqEventLoop.h>
-#include <fbzmq/async/ZmqTimeout.h>
-#include <folly/ScopeGuard.h>
 #include <fbmeshd/gateway-connectivity-monitor/RouteDampener.h>
+#include <folly/ScopeGuard.h>
+#include <folly/io/async/EventBase.h>
 
 using namespace std::chrono_literals;
 using namespace fbmeshd;
@@ -69,7 +68,7 @@ static constexpr std::chrono::seconds testHalfLife{1};
 static constexpr std::chrono::seconds testMaxSuppressLimit{3};
 } // namespace
 
-class TestRouteDampener : public fbzmq::ZmqEventLoop, public RouteDampener {
+class TestRouteDampener : public folly::EventBase, public RouteDampener {
  public:
   TestRouteDampener(unsigned int penalty = testPenalty)
       : RouteDampener{this,
@@ -95,13 +94,18 @@ class TestRouteDampener : public fbzmq::ZmqEventLoop, public RouteDampener {
 template <typename T>
 auto
 runAsync(T& runable) {
-  auto future = std::async(std::launch::async, [&runable]() { runable.run(); });
+  std::cerr << "entered runAsync" << std::endl;
+  auto future =
+      std::async(std::launch::async, [&runable]() { runable.loopForever(); });
+
+  std::cerr << "about to wait" << std::endl;
 
   runable.waitUntilRunning();
 
+  std::cerr << "finished waiting" << std::endl;
+
   return [&runable, future = std::move(future)]() {
-    runable.stop();
-    runable.waitUntilStopped();
+    runable.terminateLoopSoon();
     future.wait();
   };
 }
@@ -118,7 +122,7 @@ class RouteDampenerTest : public ::testing::Test {
       cleanup();
     };
 
-    rd.runInEventLoop([&callable, &rd]() { callable(rd); });
+    rd.runInEventBaseThreadAndWait([&callable, &rd]() { callable(rd); });
   }
 };
 
@@ -181,7 +185,7 @@ TEST_F(RouteDampenerTest, HalfLife) {
     cleanup();
   };
 
-  rd.runInEventLoop([&rd, &halfLifeNotifier, &history]() {
+  rd.runInEventBaseThreadAndWait([&rd, &halfLifeNotifier, &history]() {
     EXPECT_CALL(rd, setStat("route_dampener.default_route_history", history));
     rd.flap();
     EXPECT_EQ(history, rd.getHistory());
@@ -247,7 +251,7 @@ TEST_F(RouteDampenerTest, MaxSuppressLimit) {
     cleanup();
   };
 
-  rd.runInEventLoop([&rd, &history, &halfLifeNotifier]() {
+  rd.runInEventBaseThreadAndWait([&rd, &history, &halfLifeNotifier]() {
     EXPECT_CALL(rd, setStat("route_dampener.default_route_history", history));
     rd.flap();
     EXPECT_EQ(history, rd.getHistory());
@@ -275,7 +279,7 @@ TEST_F(RouteDampenerTest, MaxSuppressLimit) {
     halfLifeNotifier.wait();
     std::cerr << "waited " << i << std::endl;
     EXPECT_TRUE(rd.isDampened());
-    rd.runInEventLoop([&rd, &history, &halfLifeNotifier]() {
+    rd.runInEventBaseThreadAndWait([&rd, &history, &halfLifeNotifier]() {
       history += testPenalty;
       EXPECT_CALL(rd, setStat("route_dampener.default_route_history", history));
       rd.flap();

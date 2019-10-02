@@ -12,9 +12,9 @@
 
 #include <glog/logging.h>
 
-#include <fbzmq/async/ZmqEventLoop.h>
-#include <fbzmq/async/ZmqTimeout.h>
 #include <folly/Format.h>
+#include <folly/io/async/AsyncTimeout.h>
+#include <folly/io/async/EventBase.h>
 
 #include <fbmeshd/common/Constants.h>
 
@@ -27,7 +27,7 @@ namespace fbmeshd {
 class RouteDampener {
  public:
   explicit RouteDampener(
-      fbzmq::ZmqEventLoop* _eventLoop,
+      folly::EventBase* evb,
       unsigned int penalty = Constants::kDefaultPenalty,
       unsigned int suppressLimit = Constants::kDefaultSuppressLimit,
       unsigned int reuseLimit = Constants::kDefaultReuseLimit,
@@ -84,11 +84,11 @@ class RouteDampener {
   void stopHalfLifeTimer();
 
  private:
-  fbzmq::ZmqEventLoop* eventLoop_{nullptr};
+  folly::EventBase* evb_{nullptr};
   unsigned int history_{0};
   bool dampened_{false};
-  std::unique_ptr<fbzmq::ZmqTimeout> halfLifeTimer_{nullptr};
-  std::unique_ptr<fbzmq::ZmqTimeout> maxSuppressLimitTimer_{nullptr};
+  std::unique_ptr<folly::AsyncTimeout> halfLifeTimer_{nullptr};
+  std::unique_ptr<folly::AsyncTimeout> maxSuppressLimitTimer_{nullptr};
   const unsigned int penalty_;
   const unsigned int suppressLimit_;
   const unsigned int reuseLimit_;

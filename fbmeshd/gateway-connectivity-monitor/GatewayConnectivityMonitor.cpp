@@ -32,6 +32,7 @@ writeProcFs(
 }
 
 GatewayConnectivityMonitor::GatewayConnectivityMonitor(
+    folly::EventBase* evb,
     Nl80211Handler& nlHandler,
     const std::string& monitoredInterface,
     std::vector<folly::SocketAddress> monitoredAddresses,
@@ -47,7 +48,7 @@ GatewayConnectivityMonitor::GatewayConnectivityMonitor(
     Gateway11sRootRouteProgrammer* gateway11sRootRouteProgrammer,
     Routing* routing,
     StatsClient& statsClient)
-    : RouteDampener{this,
+    : RouteDampener{evb,
                     penalty,
                     suppressLimit,
                     reuseLimit,
@@ -68,13 +69,17 @@ GatewayConnectivityMonitor::GatewayConnectivityMonitor(
   writeProcFs("0", "/proc/sys/net/ipv4/conf/all/rp_filter");
 
   // Set timer to check routes
-  connectivityCheckTimer_ = fbzmq::ZmqTimeout::make(
-      this, [this]() mutable noexcept { checkRoutesAndAdvertise(); });
-  connectivityCheckTimer_->scheduleTimeout(monitorInterval, true);
+  connectivityCheckTimer_ = folly::AsyncTimeout::make(
+      *evb, [this, monitorInterval]() mutable noexcept {
+        checkRoutesAndAdvertise();
+        connectivityCheckTimer_->scheduleTimeout(monitorInterval);
+      });
+  connectivityCheckTimer_->scheduleTimeout(monitorInterval);
 }
 
 bool
 GatewayConnectivityMonitor::probeWanConnectivityRobustly() {
+  VLOG(8) << folly::sformat("GatewayConnectivityMonitor::{}()", __func__);
   for (size_t tryNum{0}; tryNum < robustness_; ++tryNum) {
     if (probeWanConnectivity()) {
       return true;
@@ -85,9 +90,8 @@ GatewayConnectivityMonitor::probeWanConnectivityRobustly() {
 
 bool
 GatewayConnectivityMonitor::probeWanConnectivity() {
+  VLOG(8) << folly::sformat("GatewayConnectivityMonitor::{}()", __func__);
   Socket::Result result;
-
-  VLOG(8) << "Probing WAN connectivity...";
   bool connectionSucceeded = false;
   for (const auto& monitoredAddress : monitoredAddresses_) {
     Socket socket;
@@ -118,11 +122,13 @@ GatewayConnectivityMonitor::probeWanConnectivity() {
 
 void
 GatewayConnectivityMonitor::setStat(const std::string& path, int value) {
+  VLOG(8) << folly::sformat("GatewayConnectivityMonitor::{}()", __func__);
   statsClient_.setAvgStat(folly::sformat(statPathPrefixTemplate, path), value);
 }
 
 void
 GatewayConnectivityMonitor::dampen() {
+  VLOG(8) << folly::sformat("GatewayConnectivityMonitor::{}()", __func__);
   if (isGatewayActive_) {
     withdrawDefaultRoute();
   }
@@ -130,6 +136,7 @@ GatewayConnectivityMonitor::dampen() {
 
 void
 GatewayConnectivityMonitor::undampen() {
+  VLOG(8) << folly::sformat("GatewayConnectivityMonitor::{}()", __func__);
   if (isGatewayActive_) {
     advertiseDefaultRoute();
   }
@@ -137,6 +144,7 @@ GatewayConnectivityMonitor::undampen() {
 
 void
 GatewayConnectivityMonitor::checkRoutesAndAdvertise() {
+  VLOG(8) << folly::sformat("GatewayConnectivityMonitor::{}()", __func__);
   if (probeWanConnectivityRobustly()) {
     VLOG(8) << "Successfully probed wan connectivity";
     if (!isDampened()) {
@@ -156,7 +164,7 @@ GatewayConnectivityMonitor::checkRoutesAndAdvertise() {
 
 void
 GatewayConnectivityMonitor::advertiseDefaultRoute() {
-  VLOG(8) << "Advertising default gateway";
+  VLOG(8) << folly::sformat("GatewayConnectivityMonitor::{}()", __func__);
   if (setRootModeIfGate_ != 0) {
     nlHandler_.setRootMode(setRootModeIfGate_);
   }
@@ -170,7 +178,7 @@ GatewayConnectivityMonitor::advertiseDefaultRoute() {
 
 void
 GatewayConnectivityMonitor::withdrawDefaultRoute() {
-  VLOG(8) << "Withdrawing default gateway";
+  VLOG(8) << folly::sformat("GatewayConnectivityMonitor::{}()", __func__);
   if (setRootModeIfGate_ != 0) {
     nlHandler_.setRootMode(0);
   }

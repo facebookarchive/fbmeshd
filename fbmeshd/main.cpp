@@ -144,17 +144,6 @@ DEFINE_double(
 //
 // They will be removed in a future version of fbmeshd, at which time using them
 // will result in fbmeshd not starting (as they will not be parsed).
-// TODO T53288272
-DEFINE_uint32(
-    peer_selector_max_allowed, 0, "DEPRECATED on 2019-08-30, do not use");
-DEFINE_uint32(
-    peer_selector_eviction_period_s, 0, "DEPRECATED on 2019-08-30, do not use");
-DEFINE_uint32(
-    peer_selector_min_gate_connections,
-    0,
-    "DEPRECATED on 2019-08-30, do not use");
-DEFINE_int32(
-    peer_selector_poll_interval_s, 0, "DEPRECATED on 2019-08-30, do not use");
 // TODO T53487225
 DEFINE_int32(monitor_rep_port, 0, "DEPRECATED on 2019-09-04, do not use");
 // TODO T54087050

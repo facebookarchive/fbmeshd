@@ -58,7 +58,7 @@ set_11g_rates(authsae_meshd_config* mconf, u16* rates, size_t rates_len) {
 void
 internal::setSupportedBasicRates(
     int phyIndex, authsae_meshd_config* mconf, u16* rates, size_t rates_len) {
-  VLOG(1) << folly::sformat("::{}(rates_len: {})", __func__, rates_len);
+  VLOG(8) << folly::sformat("::{}(rates_len: {})", __func__, rates_len);
 
   memset(mconf->rates, 0, sizeof(mconf->rates));
   assert(sizeof(mconf->rates) >= rates_len);
@@ -98,7 +98,7 @@ internal::setSupportedBasicRates(
 // returned by value.
 authsae_sae_config
 createSaeConfig(const NetInterface& netif) {
-  VLOG(1) << folly::sformat(
+  VLOG(8) << folly::sformat(
       "AuthsaeConfigHelpers::{}(phy: {})", __func__, netif.phyIndex());
 
   authsae_sae_config saeConfig;
@@ -130,7 +130,7 @@ createSaeConfig(const NetInterface& netif) {
 // structs are pre-constructed as part of the NetInterface.
 authsae_mesh_node*
 createMeshConfig(NetInterface& netif) {
-  VLOG(1) << folly::sformat(
+  VLOG(8) << folly::sformat(
       "AuthsaeConfigHelpers::{}(phy: {})", __func__, netif.phyIndex());
 
   authsae_mesh_node* mesh = netif.getMeshConfig();

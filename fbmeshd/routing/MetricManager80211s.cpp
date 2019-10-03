@@ -112,7 +112,7 @@ MetricManager80211s::updateMetrics() {
 
     // if the RSSI based metric seems broken, ignore it
     if (newMetricRssi == 0 || newMetricRssi > 1000) {
-      VLOG(1) << "MetricManager80211s: rssi based metric seems broken: "
+      VLOG(8) << "MetricManager80211s: rssi based metric seems broken: "
               << newMetricRssi;
       newMetricRssi = newMetricBitrate;
     }
@@ -122,7 +122,7 @@ MetricManager80211s::updateMetrics() {
 
     /* Initialize to newMetric to speed up convergence  */
     if (metrics_.count(mac) == 0) {
-      VLOG(10) << "MetricManager80211s: first metric entry for " << mac;
+      VLOG(8) << "MetricManager80211s: first metric entry for " << mac;
       metrics_[mac].ewmaMetric = newMetric << ewmaFactor_;
     }
 
@@ -141,7 +141,7 @@ MetricManager80211s::updateMetrics() {
       metrics_[mac].count++;
     }
 
-    VLOG(10) << "MetricManager80211s: " << mac << " adding metric " << newMetric
+    VLOG(8) << "MetricManager80211s: " << mac << " adding metric " << newMetric
              << " new metric " << (metrics_[mac].ewmaMetric >> ewmaFactor_);
   }
 }
@@ -152,7 +152,7 @@ MetricManager80211s::getLinkMetric(const StationInfo& sta) {
 
   /* If we don't have a metric for this station yet, use expected throughput*/
   if (metrics_.count(mac) == 0) {
-    VLOG(10) << "MetricManager80211s: request for unknown: " << mac;
+    VLOG(8) << "MetricManager80211s: request for unknown: " << mac;
     return bitrateToAirtime(sta.expectedThroughput);
   }
 
@@ -166,7 +166,7 @@ MetricManager80211s::getLinkMetric(const StationInfo& sta) {
     metrics_[mac].reportedMetric = metrics_[mac].ewmaMetric;
   }
 
-  VLOG(10) << "MetricManager80211s: request for " << mac
+  VLOG(8) << "MetricManager80211s: request for " << mac
            << " reply: " << (metrics_[mac].reportedMetric >> ewmaFactor_);
 
   return metrics_[mac].reportedMetric >> ewmaFactor_;

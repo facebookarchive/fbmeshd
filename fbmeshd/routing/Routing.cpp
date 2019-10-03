@@ -148,7 +148,7 @@ Routing::txPannFrame(
   VLOG(8) << folly::sformat("Routing::{}()", __func__);
 
   std::string skb;
-  VLOG(10) << "sending PANN orig:" << origAddr << " target:" << targetAddr
+  VLOG(8) << "sending PANN orig:" << origAddr << " target:" << targetAddr
            << " dst:" << da.toString();
   serializer_.serialize(
       thrift::MeshPathFramePANN{
@@ -237,14 +237,14 @@ Routing::hwmpPannFrameProcess(
     return;
   }
 
-  VLOG(10) << "received PANN from " << origAddr << " via neighbour " << sa
+  VLOG(8) << "received PANN from " << origAddr << " via neighbour " << sa
            << " target " << targetAddr << " (is_gate=" << pann.isGate << ")";
 
   const auto stas = metricManager_->getLinkMetrics();
 
   const auto sta = stas.find(sa);
   if (sta == stas.end()) {
-    VLOG(10) << "discarding PANN - sta not found";
+    VLOG(8) << "discarding PANN - sta not found";
     return;
   }
 
@@ -252,12 +252,12 @@ Routing::hwmpPannFrameProcess(
   if (da.isUnicast() && da != nodeAddr_) {
     const auto targetMpathIt{meshPaths_.find(targetAddr)};
     if (targetMpathIt == meshPaths_.end()) {
-      VLOG(10) << "discarding PANN - target not found";
+      VLOG(8) << "discarding PANN - target not found";
       return;
     }
     const auto& targetMpath = targetMpathIt->second;
     if (targetMpath.expired()) {
-      VLOG(10) << "discarding PANN - target expired";
+      VLOG(8) << "discarding PANN - target expired";
       return;
     }
     da = targetMpath.nextHop;
@@ -283,7 +283,7 @@ Routing::hwmpPannFrameProcess(
   if (!mpath.expired() &&
       (mpath.sn > origSn ||
        (mpath.nextHop != sa && mpath.metric <= newMetric))) {
-    VLOG(10) << "discarding PANN - mpath.sn:" << mpath.sn
+    VLOG(8) << "discarding PANN - mpath.sn:" << mpath.sn
              << " origSn:" << origSn << " newMetric" << newMetric
              << " mpath.metric" << mpath.metric;
     return;

@@ -78,8 +78,8 @@ class MyNetlinkHandler final : public NetlinkSocket::EventsHandler {
   linkEventFunc(
       const std::string&, const rnl::Link& linkEntry) noexcept override {
     std::string ifName = linkEntry.getLinkName();
-    VLOG(10) << "**Link : " << ifName << (linkEntry.isUp() ? " UP" : " DOWN");
-    VLOG(10) << "============================================================";
+    VLOG(8) << "**Link : " << ifName << (linkEntry.isUp() ? " UP" : " DOWN");
+    VLOG(8) << "============================================================";
   }
 
   void
@@ -87,30 +87,30 @@ class MyNetlinkHandler final : public NetlinkSocket::EventsHandler {
       const std::string&,
       const rnl::IfAddress& addrEntry) noexcept override {
     bool isValid = addrEntry.isValid();
-    VLOG(10)
+    VLOG(8)
         << "**Address : "
         << folly::IPAddress::networkToString(addrEntry.getPrefix().value())
         << "@IfaceIndex" << addrEntry.getIfIndex()
         << (isValid ? " ADDED" : " DELETED");
-    VLOG(10) << "============================================================";
+    VLOG(8) << "============================================================";
   }
 
   void
   neighborEventFunc(
       const std::string&,
       const rnl::Neighbor& neighborEntry) noexcept override {
-    VLOG(10)
+    VLOG(8)
         << "** Neighbor entry: " << neighborEntry.getDestination().str()
         << " -> " << neighborEntry.getLinkAddress().value().toString()
         << (neighborEntry.isReachable() ? " : Reachable" : " : Unreachable");
-    VLOG(10) << "============================================================";
+    VLOG(8) << "============================================================";
   }
 
   void
   routeEventFunc(
       const std::string&,
       const rnl::Route& routeEntry) noexcept override {
-    VLOG(10) << "** Route entry: "
+    VLOG(8) << "** Route entry: "
               << "Dest : "
               << folly::IPAddress::networkToString(routeEntry.getDestination());
 
@@ -118,11 +118,11 @@ class MyNetlinkHandler final : public NetlinkSocket::EventsHandler {
       if (!nh.getGateway().hasValue() || !nh.getIfIndex().hasValue()) {
         continue;
       }
-      VLOG(10) << "NextHop: " << nh.getGateway().value().str()
+      VLOG(8) << "NextHop: " << nh.getGateway().value().str()
                 << " IfaceIndex: " << nh.getIfIndex().value()
                 << " Weight: " << nh.getWeight();
     }
-    VLOG(10) << "============================================================";
+    VLOG(8) << "============================================================";
   }
 
  private:
@@ -182,7 +182,7 @@ main(int argc, char* argv[]) {
    * milliseconds level.
    */
   zmqLoop.scheduleTimeout(kEventLoopTimeout, [&]() noexcept {
-    VLOG(10) << "Timeout waiting for events... ";
+    VLOG(8) << "Timeout waiting for events... ";
     zmqLoop.stop();
   });
 

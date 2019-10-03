@@ -182,7 +182,7 @@ class MyNetlinkHandler final : public NetlinkSocket::EventsHandler {
   linkEventFunc(
       const std::string&, const rnl::Link& linkEntry) noexcept override {
     std::string ifName = linkEntry.getLinkName();
-    VLOG(3) << "**Link : " << ifName << (linkEntry.isUp() ? " UP" : " DOWN");
+    VLOG(8) << "**Link : " << ifName << (linkEntry.isUp() ? " UP" : " DOWN");
     if (ifName.find(ifNamePrefix) == std::string::npos) {
       return;
     }
@@ -203,7 +203,7 @@ class MyNetlinkHandler final : public NetlinkSocket::EventsHandler {
       const rnl::IfAddress& addrEntry) noexcept override {
     bool isValid = addrEntry.isValid();
     std::string ifName = netlinkSocket->getIfName(addrEntry.getIfIndex()).get();
-    VLOG(3) << "**Address : "
+    VLOG(8) << "**Address : "
             << folly::IPAddress::networkToString(addrEntry.getPrefix().value())
             << "@" << ifName << (isValid ? " ADDED" : " DELETED");
     if (ifName.find(ifNamePrefix) == std::string::npos) {
@@ -228,7 +228,7 @@ class MyNetlinkHandler final : public NetlinkSocket::EventsHandler {
       const rnl::Neighbor& neighborEntry) noexcept override {
     std::string ifName =
         netlinkSocket->getIfName(neighborEntry.getIfIndex()).get();
-    VLOG(3)
+    VLOG(8)
         << "** Neighbor entry: " << ifName << " : "
         << neighborEntry.getDestination().str() << " -> "
         << (neighborEntry.getLinkAddress().hasValue()
@@ -259,7 +259,7 @@ class MyNetlinkHandler final : public NetlinkSocket::EventsHandler {
   routeEventFunc(
       const std::string&,
       const rnl::Route& routeEntry) noexcept override {
-    VLOG(3) << "** Route entry: "
+    VLOG(8) << "** Route entry: "
             << "Dest : "
             << folly::IPAddress::networkToString(routeEntry.getDestination())
             << " action " << (routeEntry.isValid() ? "Add" : "Del");
@@ -352,7 +352,7 @@ TEST_F(NetlinkSocketSubscribeFixture, LinkFlapTest) {
   // A timeout to stop the UT in case we never received expected events
   // UT will mostly likely fail as our checks at the end will fail
   zmqLoop.scheduleTimeout(kEventLoopTimeout, [&]() noexcept {
-    VLOG(3) << "Timeout waiting for events... ";
+    VLOG(8) << "Timeout waiting for events... ";
     zmqLoop.stop();
   });
 
@@ -361,7 +361,7 @@ TEST_F(NetlinkSocketSubscribeFixture, LinkFlapTest) {
   std::shared_ptr<MyNetlinkHandler> myHandler =
       std::make_shared<MyNetlinkHandler>(
           [&]() noexcept {
-            VLOG(3) << "Received event from netlink";
+            VLOG(8) << "Received event from netlink";
             if (zmqLoop.isRunning() && myHandler->links.count(kVethNameX) &&
                 myHandler->links.count(kVethNameY) &&
                 myHandler->links.at(kVethNameX).isUp &&
@@ -449,7 +449,7 @@ TEST_F(NetlinkSocketSubscribeFixture, NeighborMultipleEventTest) {
   // A timeout to stop the UT in case we never received expected events
   // UT will mostly likely fail as our checks at the end will fail
   zmqLoop.scheduleTimeout(kEventLoopTimeout, [&]() noexcept {
-    VLOG(3) << "Timeout waiting for events... ";
+    VLOG(8) << "Timeout waiting for events... ";
     zmqLoop.stop();
   });
 
@@ -459,13 +459,13 @@ TEST_F(NetlinkSocketSubscribeFixture, NeighborMultipleEventTest) {
   std::shared_ptr<MyNetlinkHandler> myHandler =
       std::make_shared<MyNetlinkHandler>(
           [&]() noexcept {
-            VLOG(3) << "Received event from netlink";
+            VLOG(8) << "Received event from netlink";
             if (zmqLoop.isRunning() &&
                 myHandler->neighbors.count(neighborKey1) == 0 &&
                 myHandler->neighbors.count(neighborKey2) == 0 &&
                 myHandler->neighborAddEventCount >= 2 &&
                 myHandler->neighborDelEventCount >= 2) {
-              VLOG(3) << "Expected events received. Stopping zmq event loop";
+              VLOG(8) << "Expected events received. Stopping zmq event loop";
               zmqLoop.stop();
             }
           },
@@ -597,7 +597,7 @@ TEST_F(NetlinkSocketSubscribeFixture, AddrLinkFlapTest) {
   // UT will mostly likely fail as our checks at the end will fail
   auto setTimeout = [&] {
     return zmqLoop.scheduleTimeout(kEventLoopTimeout, [&]() noexcept {
-      VLOG(3) << "Timeout waiting for events... ";
+      VLOG(8) << "Timeout waiting for events... ";
       zmqLoop.stop();
     });
   };
@@ -610,13 +610,13 @@ TEST_F(NetlinkSocketSubscribeFixture, AddrLinkFlapTest) {
   std::shared_ptr<MyNetlinkHandler> myHandler =
       std::make_shared<MyNetlinkHandler>(
           [&]() noexcept {
-            VLOG(3) << "Received event from netlink";
+            VLOG(8) << "Received event from netlink";
             if (zmqLoop.isRunning() && myHandler->links.count(kVethNameX) &&
                 myHandler->links.count(kVethNameY) &&
                 myHandler->links.at(kVethNameX).isUp &&
                 myHandler->links.at(kVethNameY).isUp &&
                 myHandler->addrAddEventCount == 2) {
-              VLOG(3) << "Expected events received. Stopping zmq event loop";
+              VLOG(8) << "Expected events received. Stopping zmq event loop";
               allEventsReceived = true;
               zmqLoop.stop();
             }
@@ -665,14 +665,14 @@ TEST_F(NetlinkSocketSubscribeFixture, AddrLinkFlapTest) {
   myHandler->addrDelEventCount = 0;
   allEventsReceived = false;
   myHandler->replaceEventFunc([&] {
-    VLOG(3) << "Received event from netlink";
+    VLOG(8) << "Received event from netlink";
     if (zmqLoop.isRunning() && myHandler->links.count(kVethNameX) &&
         myHandler->links.count(kVethNameY) &&
         // We check for !isUp here, the rest is the same
         !myHandler->links.at(kVethNameX).isUp &&
         !myHandler->links.at(kVethNameY).isUp &&
         myHandler->addrDelEventCount == 2) {
-      VLOG(3) << "Expected events received. Stopping zmq event loop";
+      VLOG(8) << "Expected events received. Stopping zmq event loop";
       allEventsReceived = true;
       zmqLoop.stop();
     }
@@ -710,7 +710,7 @@ TEST_F(NetlinkSocketSubscribeFixture, AddrAddRemoveTest) {
   // UT will mostly likely fail as our checks at the end will fail
   auto setTimeout = [&] {
     return zmqLoop.scheduleTimeout(kEventLoopTimeout, [&]() noexcept {
-      VLOG(3) << "Timeout waiting for events... ";
+      VLOG(8) << "Timeout waiting for events... ";
       zmqLoop.stop();
     });
   };
@@ -723,13 +723,13 @@ TEST_F(NetlinkSocketSubscribeFixture, AddrAddRemoveTest) {
   std::shared_ptr<MyNetlinkHandler> myHandler =
       std::make_shared<MyNetlinkHandler>(
           [&]() noexcept {
-            VLOG(3) << "Received event from netlink";
+            VLOG(8) << "Received event from netlink";
             if (zmqLoop.isRunning() && myHandler->links.count(kVethNameX) &&
                 myHandler->links.count(kVethNameY) &&
                 myHandler->links.at(kVethNameX).isUp &&
                 myHandler->links.at(kVethNameY).isUp &&
                 myHandler->addrAddEventCount == 6) {
-              VLOG(3) << "Expected events received. Stopping zmq event loop";
+              VLOG(8) << "Expected events received. Stopping zmq event loop";
               allEventsReceived = true;
               zmqLoop.stop();
             }
@@ -798,14 +798,14 @@ TEST_F(NetlinkSocketSubscribeFixture, AddrAddRemoveTest) {
   myHandler->addrAddEventCount = 0;
   allEventsReceived = false;
   myHandler->replaceEventFunc([&] {
-    VLOG(3) << "Received event from netlink";
+    VLOG(8) << "Received event from netlink";
     if (zmqLoop.isRunning() && myHandler->links.count(kVethNameX) &&
         myHandler->links.count(kVethNameY) &&
         myHandler->links.at(kVethNameX).isUp &&
         myHandler->links.at(kVethNameY).isUp &&
         // This is the ony change - wait for 4 addr delete events
         myHandler->addrDelEventCount == 4) {
-      VLOG(3) << "Expected events received. Stopping zmq event loop";
+      VLOG(8) << "Expected events received. Stopping zmq event loop";
       allEventsReceived = true;
       zmqLoop.stop();
     }
@@ -856,7 +856,7 @@ TEST_F(NetlinkSocketSubscribeFixture, AddrAddRemoveTestNetlink) {
   // UT will mostly likely fail as our checks at the end will fail
   auto setTimeout = [&] {
     return zmqLoop.scheduleTimeout(kEventLoopTimeout, [&]() noexcept {
-      VLOG(3) << "Timeout waiting for events... ";
+      VLOG(8) << "Timeout waiting for events... ";
       zmqLoop.stop();
     });
   };
@@ -872,13 +872,13 @@ TEST_F(NetlinkSocketSubscribeFixture, AddrAddRemoveTestNetlink) {
   std::shared_ptr<MyNetlinkHandler> myHandler =
       std::make_shared<MyNetlinkHandler>(
           [&]() noexcept {
-            VLOG(3) << "Received event from netlink";
+            VLOG(8) << "Received event from netlink";
             if (zmqLoop.isRunning() && myHandler->links.count(kVethNameX) &&
                 myHandler->links.count(kVethNameY) &&
                 myHandler->links.at(kVethNameX).isUp &&
                 myHandler->links.at(kVethNameY).isUp &&
                 myHandler->addrAddEventCount == 4) {
-              VLOG(3) << "Expected events received. Stopping zmq event loop";
+              VLOG(8) << "Expected events received. Stopping zmq event loop";
               allEventsReceived = true;
               zmqLoop.stop();
             }
@@ -945,14 +945,14 @@ TEST_F(NetlinkSocketSubscribeFixture, AddrAddRemoveTestNetlink) {
   myHandler->addrAddEventCount = 0;
   allEventsReceived = false;
   myHandler->replaceEventFunc([&] {
-    VLOG(3) << "Received event from netlink";
+    VLOG(8) << "Received event from netlink";
     if (zmqLoop.isRunning() && myHandler->links.count(kVethNameX) &&
         myHandler->links.count(kVethNameY) &&
         myHandler->links.at(kVethNameX).isUp &&
         myHandler->links.at(kVethNameY).isUp &&
         // This is the ony change - wait for 1 addr delete events
         myHandler->addrDelEventCount == 2) {
-      VLOG(3) << "Expected events received. Stopping zmq event loop";
+      VLOG(8) << "Expected events received. Stopping zmq event loop";
       allEventsReceived = true;
       zmqLoop.stop();
     }
@@ -1003,7 +1003,7 @@ TEST_F(NetlinkSocketSubscribeFixture, LinkEventFlagTest) {
   // UT will mostly likely fail as our checks at the end will fail
   auto setTimeout = [&] {
     return zmqLoop.scheduleTimeout(kEventLoopTimeout, [&]() noexcept {
-      VLOG(3) << "Timeout waiting for events... ";
+      VLOG(8) << "Timeout waiting for events... ";
       zmqLoop.stop();
     });
   };
@@ -1016,14 +1016,14 @@ TEST_F(NetlinkSocketSubscribeFixture, LinkEventFlagTest) {
   std::shared_ptr<MyNetlinkHandler> myHandler =
       std::make_shared<MyNetlinkHandler>(
           [&]() noexcept {
-            VLOG(3) << "Received event from netlink";
+            VLOG(8) << "Received event from netlink";
             if (zmqLoop.isRunning() && myHandler->links.count(kVethNameX) &&
                 myHandler->links.count(kVethNameY) &&
                 myHandler->links.at(kVethNameX).isUp &&
                 myHandler->links.at(kVethNameY).isUp &&
                 myHandler->addrAddEventCount == 0 &&
                 myHandler->addrDelEventCount == 0) {
-              VLOG(3) << "Expected events received. Stopping zmq event loop";
+              VLOG(8) << "Expected events received. Stopping zmq event loop";
               allEventsReceived = true;
               zmqLoop.stop();
             }
@@ -1042,7 +1042,7 @@ TEST_F(NetlinkSocketSubscribeFixture, LinkEventFlagTest) {
   // or stop after we receive expected events
   std::thread eventThread([&]() { zmqLoop.run(); });
   zmqLoop.waitUntilRunning();
-  VLOG(3) << "Hello";
+  VLOG(8) << "Hello";
 
   // Now emulate the links going up. This will generate link-local addresses
   // We deliberately choose system calls here to completely
@@ -1114,7 +1114,7 @@ TEST_F(NetlinkSocketSubscribeFixture, NeighEventFlagTest) {
   // UT will mostly likely fail as our checks at the end will fail
   auto setTimeout = [&] {
     return zmqLoop.scheduleTimeout(kEventLoopTimeout, [&]() noexcept {
-      VLOG(3) << "Timeout waiting for events... ";
+      VLOG(8) << "Timeout waiting for events... ";
       zmqLoop.stop();
     });
   };
@@ -1123,7 +1123,7 @@ TEST_F(NetlinkSocketSubscribeFixture, NeighEventFlagTest) {
   // A timeout to stop the UT in case we never received expected events
   // UT will mostly likely fail as our checks at the end will fail
   zmqLoop.scheduleTimeout(kEventLoopTimeout, [&]() noexcept {
-    VLOG(3) << "Timeout waiting for events... ";
+    VLOG(8) << "Timeout waiting for events... ";
     zmqLoop.stop();
   });
 
@@ -1133,11 +1133,11 @@ TEST_F(NetlinkSocketSubscribeFixture, NeighEventFlagTest) {
   std::shared_ptr<MyNetlinkHandler> myHandler =
       std::make_shared<MyNetlinkHandler>(
           [&]() noexcept {
-            VLOG(3) << "Received event from netlink";
+            VLOG(8) << "Received event from netlink";
             if (zmqLoop.isRunning() &&
                 myHandler->neighbors.count(neighborKey1) == 1 &&
                 myHandler->neighborAddEventCount >= 1) {
-              VLOG(3) << "Expected events received. Stopping zmq event loop";
+              VLOG(8) << "Expected events received. Stopping zmq event loop";
               zmqLoop.stop();
             }
           },
@@ -1211,7 +1211,7 @@ TEST_F(NetlinkSocketSubscribeFixture, AddrEventFlagTest) {
   // UT will mostly likely fail as our checks at the end will fail
   auto setTimeout = [&] {
     return zmqLoop.scheduleTimeout(kEventLoopTimeout, [&]() noexcept {
-      VLOG(3) << "Timeout waiting for events... ";
+      VLOG(8) << "Timeout waiting for events... ";
       zmqLoop.stop();
     });
   };
@@ -1223,9 +1223,9 @@ TEST_F(NetlinkSocketSubscribeFixture, AddrEventFlagTest) {
   std::shared_ptr<MyNetlinkHandler> myHandler =
       std::make_shared<MyNetlinkHandler>(
           [&]() noexcept {
-            VLOG(3) << "Received event from netlink";
+            VLOG(8) << "Received event from netlink";
             if (zmqLoop.isRunning() && myHandler->addrAddEventCount == 4) {
-              VLOG(3) << "Expected events received. Stopping zmq event loop";
+              VLOG(8) << "Expected events received. Stopping zmq event loop";
               allEventsReceived = true;
               zmqLoop.stop();
             }
@@ -1331,7 +1331,7 @@ TEST_F(NetlinkSocketSubscribeFixture, RouteTest) {
   // UT will mostly likely fail as our checks at the end will fail
   auto setTimeout = [&] {
     return zmqLoop.scheduleTimeout(kEventLoopTimeout, [&]() noexcept {
-      VLOG(3) << "Timeout waiting for events... ";
+      VLOG(8) << "Timeout waiting for events... ";
       zmqLoop.stop();
     });
   };
@@ -1342,7 +1342,7 @@ TEST_F(NetlinkSocketSubscribeFixture, RouteTest) {
   std::shared_ptr<MyNetlinkHandler> myHandler =
       std::make_shared<MyNetlinkHandler>(
           [&]() noexcept {
-            VLOG(3) << "Received event from netlink";
+            VLOG(8) << "Received event from netlink";
             if (zmqLoop.isRunning() && myHandler->routes.count(kPrefix1) &&
                 myHandler->routes.count(kPrefix2) &&
                 myHandler->routes.count(kPrefix3)) {
@@ -1418,11 +1418,11 @@ TEST_F(NetlinkSocketSubscribeFixture, RouteTest) {
 
   myHandler->routeAddEventCount = 0;
   myHandler->replaceEventFunc([&] {
-    VLOG(3) << "Received event from netlink";
+    VLOG(8) << "Received event from netlink";
     if (zmqLoop.isRunning() && !myHandler->routes.count(kPrefix1) &&
         !myHandler->routes.count(kPrefix2) &&
         !myHandler->routes.count(kPrefix3)) {
-      VLOG(3) << "Expected events received. Stopping zmq event loop";
+      VLOG(8) << "Expected events received. Stopping zmq event loop";
       zmqLoop.stop();
     }
   });
@@ -1464,7 +1464,7 @@ TEST_F(NetlinkSocketSubscribeFixture, RouteFlagTest) {
   // UT will mostly likely fail as our checks at the end will fail
   auto setTimeout = [&] {
     return zmqLoop.scheduleTimeout(kEventLoopTimeout, [&]() noexcept {
-      VLOG(3) << "Timeout waiting for events... ";
+      VLOG(8) << "Timeout waiting for events... ";
       zmqLoop.stop();
     });
   };
@@ -1475,7 +1475,7 @@ TEST_F(NetlinkSocketSubscribeFixture, RouteFlagTest) {
   std::shared_ptr<MyNetlinkHandler> myHandler =
       std::make_shared<MyNetlinkHandler>(
           [&]() noexcept {
-            VLOG(3) << "Received event from netlink";
+            VLOG(8) << "Received event from netlink";
             if (zmqLoop.isRunning() && myHandler->routes.count(kPrefix1) &&
                 myHandler->routes.count(kPrefix2) &&
                 myHandler->routes.count(kPrefix3)) {
@@ -1594,7 +1594,7 @@ TEST_F(NetlinkSocketSubscribeFixture, MultipleLinkFlapTest) {
   // A timeout to stop the UT in case we never received expected events
   // UT will mostly likely fail as our checks at the end will fail
   zmqLoop.scheduleTimeout(kStressTestEventLoopTimeout, [&]() noexcept {
-    VLOG(3) << "Timeout waiting for events... ";
+    VLOG(8) << "Timeout waiting for events... ";
     zmqLoop.stop();
   });
 
@@ -1616,7 +1616,7 @@ TEST_F(NetlinkSocketSubscribeFixture, MultipleLinkFlapTest) {
   std::shared_ptr<MyNetlinkHandler> myHandler =
       std::make_shared<MyNetlinkHandler>(
           [&]() noexcept {
-            VLOG(3) << "Received event from netlink";
+            VLOG(8) << "Received event from netlink";
             if (zmqLoop.isRunning() && myHandler->links.count(kVethNameX) &&
                 myHandler->links.count(kVethNameY) &&
                 myHandler->links.at(kVethNameX).isUp &&
@@ -1705,7 +1705,7 @@ TEST_F(NetlinkSocketSubscribeFixture, AddrScaleTest) {
   // UT will mostly likely fail as our checks at the end will fail
   auto setTimeout = [&] {
     return zmqLoop.scheduleTimeout(kStressTestEventLoopTimeout, [&]() noexcept {
-      VLOG(3) << "Timeout waiting for events... ";
+      VLOG(8) << "Timeout waiting for events... ";
       zmqLoop.stop();
     });
   };
@@ -1717,10 +1717,10 @@ TEST_F(NetlinkSocketSubscribeFixture, AddrScaleTest) {
   std::shared_ptr<MyNetlinkHandler> myHandler =
       std::make_shared<MyNetlinkHandler>(
           [&]() noexcept {
-            VLOG(3) << "Received event from netlink";
+            VLOG(8) << "Received event from netlink";
             if (zmqLoop.isRunning() &&
                 myHandler->addrAddEventCount == 2 + 4 * addrCount) {
-              VLOG(3) << "Expected events received. Stopping zmq event loop";
+              VLOG(8) << "Expected events received. Stopping zmq event loop";
               allEventsReceived = true;
               zmqLoop.stop();
             }
@@ -1791,9 +1791,9 @@ TEST_F(NetlinkSocketSubscribeFixture, AddrScaleTest) {
   myHandler->addrAddEventCount = 0;
   allEventsReceived = false;
   myHandler->replaceEventFunc([&] {
-    VLOG(3) << "Received event from netlink";
+    VLOG(8) << "Received event from netlink";
     if (zmqLoop.isRunning() && myHandler->addrDelEventCount == 4 * addrCount) {
-      VLOG(3) << "Expected events received. Stopping zmq event loop";
+      VLOG(8) << "Expected events received. Stopping zmq event loop";
       allEventsReceived = true;
       zmqLoop.stop();
     }

@@ -200,7 +200,7 @@ void
 Nl80211Handler::printConfiguration() {
   VLOG(8) << folly::sformat("Nl80211Handler::{}()", __func__);
 
-  VLOG(1)
+  VLOG(5)
       << "mesh id: " << FLAGS_mesh_id << ", interface name: " << interfaceName_
       << ", channel type: " << FLAGS_mesh_channel_type
       << ", control frequency: " << FLAGS_mesh_frequency
@@ -1454,16 +1454,16 @@ Nl80211Handler::processEvent(const GenericNetlinkMessage& msg) {
     uint32_t phyIndex =
         *static_cast<uint32_t*>(nla_data(tb[NL80211_ATTR_WIPHY]));
 
-    VLOG(10)
+    VLOG(8)
         << folly::sformat("Received netlink event {} for phy{}", cmd, phyIndex);
 
     if (netInterfaces_.count(phyIndex) == 0) {
-      VLOG(10) << folly::sformat(
+      VLOG(8) << folly::sformat(
           "No phy{} interface exists, ignoring event", phyIndex);
       return NL_SKIP;
     }
   } else {
-    VLOG(10) << folly::sformat(
+    VLOG(8) << folly::sformat(
         "Received netlink event {} not associated with a phy", cmd);
   }
 
@@ -1535,7 +1535,7 @@ Nl80211Handler::processEvent(const GenericNetlinkMessage& msg) {
     break;
 
   default:
-    VLOG(8) << folly::sformat("Ignored unhandled event ({})", cmd);
+    VLOG(5) << folly::sformat("Ignored unhandled event ({})", cmd);
     break;
   }
 

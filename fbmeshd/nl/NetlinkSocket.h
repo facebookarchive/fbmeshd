@@ -63,7 +63,7 @@ class NetlinkSocket {
 
     const auto msgHeader = msg.getHeader();
     genlmsghdr* genlmsgHeader = static_cast<genlmsghdr*>(nlmsg_data(msgHeader));
-    VLOG(10) << "Sent nl message (command: "
+    VLOG(8) << "Sent nl message (command: "
              << static_cast<uint32_t>(genlmsgHeader->cmd)
              << "; sequence: " << msgHeader->nlmsg_seq << ")";
   }
@@ -79,7 +79,7 @@ class NetlinkSocket {
       ret = err->error;
 
       if (err->error == -NLE_INTR) {
-        VLOG(10)
+        VLOG(8)
             << "Interrupted syscall error; retrying receiving netlink message ("
             << "command: " << static_cast<uint32_t>(gnlh->cmd)
             << "; sequence: " << err->msg.nlmsg_seq << ")";

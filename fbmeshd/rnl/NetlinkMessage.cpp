@@ -51,11 +51,11 @@ NetlinkMessage::addSubAttributes(
   uint32_t subRtaLen = RTA_LENGTH(len);
 
   if (RTA_ALIGN(rta->rta_len) + RTA_ALIGN(subRtaLen) > size_) {
-    VLOG(1) << "Space not available to add sub attribute type " << type;
+    VLOG(8) << "Space not available to add sub attribute type " << type;
     return nullptr;
   }
 
-  VLOG(2) << "Sub attribute type : " << type << " Len: " << len;
+  VLOG(8) << "Sub attribute type : " << type << " Len: " << len;
 
   // add the subattribute
   struct rtattr* subrta =
@@ -81,7 +81,7 @@ NetlinkMessage::addAttributes(
   uint32_t nlmsgAlen = NLMSG_ALIGN((msghdr)->nlmsg_len);
 
   if (nlmsgAlen + RTA_ALIGN(rtaLen) > size_) {
-    VLOG(1) << "Space not available to add attribute type " << type;
+    VLOG(8) << "Space not available to add attribute type " << type;
     return ResultCode::NO_MESSAGE_BUFFER;
   }
 
@@ -90,7 +90,7 @@ NetlinkMessage::addAttributes(
       reinterpret_cast<struct rtattr*>(((char*)(msghdr)) + nlmsgAlen);
   rptr->rta_type = type;
   rptr->rta_len = rtaLen;
-  VLOG(2) << "Attribute type : " << type << " Len: " << rtaLen;
+  VLOG(8) << "Attribute type : " << type << " Len: " << rtaLen;
   if (data) {
     memcpy(RTA_DATA(rptr), data, len);
   }
@@ -125,7 +125,7 @@ NetlinkMessage::setMessageType(NetlinkMessage::MessageType type) {
 NetlinkProtocolSocket::NetlinkProtocolSocket(fbzmq::ZmqEventLoop* evl)
     : evl_(evl) {
   nlMessageTimer_ = fbzmq::ZmqTimeout::make(evl_, [this]() noexcept {
-    VLOG(10) << "Did not receive last ack " << lastSeqNo_;
+    VLOG(8) << "Did not receive last ack " << lastSeqNo_;
     sendNetlinkMessage();
   });
 }
@@ -139,7 +139,7 @@ NetlinkProtocolSocket::init() {
   if (nlSock_ < 0) {
     LOG(FATAL) << "Netlink socket create failed.";
   }
-  VLOG(1) << "Netlink socket created." << nlSock_;
+  VLOG(8) << "Netlink socket created." << nlSock_;
   int size = kNetlinkSockRecvBuf;
   // increase socket recv buffer size
   if (setsockopt(nlSock_, SOL_SOCKET, SO_RCVBUF, &size, sizeof(size)) < 0) {
@@ -192,7 +192,7 @@ NetlinkProtocolSocket::setNeighborEventCB(
 void
 NetlinkProtocolSocket::processAck(uint32_t ack) {
   if (ack == lastSeqNo_) {
-    VLOG(2) << "Last ack received " << ack;
+    VLOG(8) << "Last ack received " << ack;
     // cancel active message timer
     if (nlMessageTimer_->isScheduled()) {
       nlMessageTimer_->cancelTimeout();
@@ -238,7 +238,7 @@ NetlinkProtocolSocket::sendNetlinkMessage() {
       count++;
     }
     lastSeqNo_ = gSequenceNumber;
-    VLOG(2) << "Last seq sent:" << lastSeqNo_;
+    VLOG(8) << "Last seq sent:" << lastSeqNo_;
 
     auto outMsg = std::make_unique<struct msghdr>();
     outMsg->msg_name = &nladdr;
@@ -246,7 +246,7 @@ NetlinkProtocolSocket::sendNetlinkMessage() {
     outMsg->msg_iov = &iov[0];
     outMsg->msg_iovlen = count;
 
-    VLOG(2) << "Sending " << outMsg->msg_iovlen << " netlink messages";
+    VLOG(8) << "Sending " << outMsg->msg_iovlen << " netlink messages";
     auto status = sendmsg(nlSock_, outMsg.get(), 0);
 
     if (status < 0) {
@@ -270,7 +270,7 @@ NetlinkProtocolSocket::setReturnStatusValue(uint32_t seq, int status) {
     // Remove mapping
     nlSeqNoMap_.erase(seq);
   } catch (const std::out_of_range& e) {
-    VLOG(2) << "No future associated with Seq#" << seq;
+    VLOG(8) << "No future associated with Seq#" << seq;
   }
 }
 
@@ -284,7 +284,7 @@ NetlinkProtocolSocket::processMessage(
       break;
     }
 
-    VLOG(2) << "Received Netlink message of type " << nlh->nlmsg_type
+    VLOG(8) << "Received Netlink message of type " << nlh->nlmsg_type
             << " seq no " << nlh->nlmsg_seq;
     switch (nlh->nlmsg_type) {
     case RTM_NEWROUTE:
@@ -309,7 +309,7 @@ NetlinkProtocolSocket::processMessage(
         linkCache_.emplace_back(link);
       } else if (linkEventCB_) {
         // Asynchronous event - generate link event for handler
-        VLOG(0) << "Asynchronous Link Event: " << link.str();
+        VLOG(8) << "Asynchronous Link Event: " << link.str();
         linkEventCB_(link, true);
       }
     } break;
@@ -340,13 +340,13 @@ NetlinkProtocolSocket::processMessage(
           with the same sequence as the original request */
           if (addrEventCB_) {
             // Asynchronous event - generate addr event for handler
-            VLOG(0) << "Asynchronous Addr Event: " << addr.str();
+            VLOG(8) << "Asynchronous Addr Event: " << addr.str();
             addrEventCB_(addr, true);
           }
         }
       } else if (addrEventCB_) {
         // Asynchronous event - generate addr event for handler
-        VLOG(0) << "Asynchronous Addr Event: " << addr.str();
+        VLOG(8) << "Asynchronous Addr Event: " << addr.str();
         addrEventCB_(addr, true);
       }
     } break;
@@ -362,7 +362,7 @@ NetlinkProtocolSocket::processMessage(
         neighborCache_.emplace_back(neighbor);
       } else if (neighborEventCB_) {
         // Asynchronous event - generate neighbor event for handler
-        VLOG(0) << "Asynchronous Neighbor Event: " << neighbor.str();
+        VLOG(8) << "Asynchronous Neighbor Event: " << neighbor.str();
         neighborEventCB_(neighbor, true);
       }
     } break;
@@ -405,13 +405,13 @@ NetlinkProtocolSocket::recvNetlinkMessage() {
   std::array<char, kMaxNlPayloadSize> recvMsg = {};
 
   int32_t bytesRead = ::recv(nlSock_, recvMsg.data(), kMaxNlPayloadSize, 0);
-  VLOG(4) << "Message received with size: " << bytesRead;
+  VLOG(8) << "Message received with size: " << bytesRead;
 
   if (bytesRead < 0) {
     if (errno == EINTR || errno == EAGAIN) {
       return;
     }
-    VLOG(10) << "Error in netlink socket receive: " << bytesRead
+    VLOG(8) << "Error in netlink socket receive: " << bytesRead
               << " err: " << folly::errnoStr(std::abs(errno));
     return;
   }
@@ -429,7 +429,7 @@ NetlinkProtocolSocket::getAckCount() const {
 }
 
 NetlinkProtocolSocket::~NetlinkProtocolSocket() {
-  VLOG(10) << "Closing netlink socket.";
+  VLOG(8) << "Closing netlink socket.";
   close(nlSock_);
 }
 

@@ -34,7 +34,7 @@ fbzmq::ZmqEventLoop* AuthsaeCallbackHelpers::zmqLoop_{nullptr};
 // Used for SAE
 static int
 meshd_write_mgmt(char* frame, int framelen, void* /* cookie */) {
-  VLOG(1) << folly::sformat("authsae: {}(framelen: {})", __func__, framelen);
+  VLOG(8) << folly::sformat("authsae: {}(framelen: {})", __func__, framelen);
 
   if (!frame) {
     LOG(WARNING) << folly::sformat(
@@ -60,7 +60,7 @@ meshd_write_mgmt(char* frame, int framelen, void* /* cookie */) {
 
 static void
 peer_created(unsigned char* peer_mac) {
-  VLOG(1) << folly::sformat(
+  VLOG(8) << folly::sformat(
       "authsae: {}(peer_mac: {})",
       __func__,
       folly::MacAddress::fromBinary({peer_mac, ETH_ALEN}).toString());
@@ -117,7 +117,7 @@ fin(unsigned short reason,
     unsigned char* key,
     int keylen,
     void* /* cookie */) {
-  VLOG(1) << folly::sformat(
+  VLOG(8) << folly::sformat(
       "authsae: {}(reason: {}, peer_mac: {})",
       __func__,
       reason,
@@ -135,7 +135,7 @@ fin(unsigned short reason,
           keyString.append(folly::sformat("{:0x}", key[i]));
         }
 
-        VLOG(1) << folly::sformat("SAE completed with key: {}", keyString);
+        VLOG(8) << folly::sformat("SAE completed with key: {}", keyString);
       }
 
       ampe_open_peer_link(peer_mac, /*cookie*/ nullptr);
@@ -150,7 +150,7 @@ fin(unsigned short reason,
 // Used for AMPE
 static int
 meshd_set_mesh_conf(mesh_node* mesh, uint32_t changed) {
-  VLOG(1) << folly::sformat("authsae: {}()", __func__);
+  VLOG(8) << folly::sformat("authsae: {}()", __func__);
   CHECK_NOTNULL(mesh);
 
   if (Nl80211Handler::globalNlHandler->lookupMeshNetif().getMeshConfig() !=
@@ -166,7 +166,7 @@ meshd_set_mesh_conf(mesh_node* mesh, uint32_t changed) {
 
 static int
 set_plink_state(unsigned char* peer, int state, void* /* cookie */) {
-  VLOG(1) << folly::sformat(
+  VLOG(8) << folly::sformat(
       "authsae: {}(peer: {}, state: {})",
       __func__,
       folly::MacAddress::fromBinary({peer, ETH_ALEN}).toString(),
@@ -194,7 +194,7 @@ estab_peer_link(
     unsigned char* /* rates */,
     unsigned short rates_len,
     void* /* cookie */) {
-  VLOG(1) << folly::sformat(
+  VLOG(8) << folly::sformat(
       "authsae: {}(peer_mac: {}, igtk_keyid: {}, rates_len: {})",
       __func__,
       folly::MacAddress::fromBinary({peer_mac, ETH_ALEN}).toString(),
@@ -235,7 +235,7 @@ estab_peer_link(
   auto nlHandler = Nl80211Handler::globalNlHandler;
   auto& netif = nlHandler->lookupMeshNetif();
 
-  VLOG(1) << folly::sformat(
+  VLOG(8) << folly::sformat(
       "Successfully established link with {} on phy{}",
       peer.toString(),
       netif.phyIndex());
@@ -293,7 +293,7 @@ estab_peer_link(
 
 static int
 add_input(int fd, void* /* data*/, fdcb /* proc */) {
-  VLOG(1) << folly::sformat("authsae: {}(fd: {})", __func__, fd);
+  VLOG(8) << folly::sformat("authsae: {}(fd: {})", __func__, fd);
 
   // TODO 2018-05-21: This is not yet implemented. It will forward into the
   // Nl80211Handler in an upcoming diff. We use an assert instead of exceptions
@@ -305,7 +305,7 @@ add_input(int fd, void* /* data*/, fdcb /* proc */) {
 
 static void
 rem_input(int fd) {
-  VLOG(1) << folly::sformat("authsae: {}(fd: {})", __func__, fd);
+  VLOG(8) << folly::sformat("authsae: {}(fd: {})", __func__, fd);
 
   // TODO 2018-05-21: This is not yet implemented. It will forward into the
   // Nl80211Handler in an upcoming diff. We use an assert instead of exceptions
@@ -316,7 +316,7 @@ rem_input(int fd) {
 static timerid
 add_timeout_with_jitter(
     microseconds usec, timercb proc, void* data, microseconds jitter_usecs) {
-  VLOG(1) << folly::sformat(
+  VLOG(8) << folly::sformat(
       "authsae: {}(usec: {}, jitter_usecs: {})", __func__, usec, jitter_usecs);
 
   // Our timer only has msec resolution
@@ -340,29 +340,29 @@ add_timeout_with_jitter(
   // return it - enforce this to be extra safer.
   assert(timerId != 0);
 
-  VLOG(1) << folly::sformat("Added timer (timerId {})", timerId);
+  VLOG(8) << folly::sformat("Added timer (timerId {})", timerId);
   return timerId;
 }
 
 static timerid
 add_timeout(microseconds usec, timercb proc, void* data) {
-  VLOG(1) << folly::sformat("authsae: {}(usec: {})", __func__, usec);
+  VLOG(8) << folly::sformat("authsae: {}(usec: {})", __func__, usec);
   return add_timeout_with_jitter(usec, proc, data, 0);
 }
 
 static int
 rem_timeout(timerid id) {
-  VLOG(1) << folly::sformat("authsae: {}(timerid: {})", __func__, id);
+  VLOG(8) << folly::sformat("authsae: {}(timerid: {})", __func__, id);
 
   if (id == 0) {
     // Per authsae's service.h, 0 is an invalid timerid, and trying to remove
     // that timerid should be a no-op
-    VLOG(1) << folly::sformat("Not removing invalid timer (timerId {})", id);
+    VLOG(8) << folly::sformat("Not removing invalid timer (timerId {})", id);
     return 0;
   }
 
   AuthsaeCallbackHelpers::removeTimeoutFromEventLoop(id);
-  VLOG(1) << folly::sformat("Removed timer (timerId {})", id);
+  VLOG(8) << folly::sformat("Removed timer (timerId {})", id);
   return id;
 }
 
@@ -403,7 +403,7 @@ getSaeCallbacks() {
 // event loop pointer for use by other functions.
 void
 AuthsaeCallbackHelpers::init(fbzmq::ZmqEventLoop& zmqLoop) {
-  VLOG(1) << folly::sformat("AuthsaeCallbackHelpers::{}()", __func__);
+  VLOG(8) << folly::sformat("AuthsaeCallbackHelpers::{}()", __func__);
   AuthsaeCallbackHelpers::zmqLoop_ = &zmqLoop;
 }
 
@@ -412,7 +412,7 @@ AuthsaeCallbackHelpers::init(fbzmq::ZmqEventLoop& zmqLoop) {
 int64_t
 AuthsaeCallbackHelpers::addTimeoutToEventLoop(
     std::chrono::milliseconds timeout, fbzmq::TimeoutCallback callback) {
-  VLOG(1) << folly::sformat(
+  VLOG(8) << folly::sformat(
       "AuthsaeCallbackHelpers::{}(timeout: {}ms)", __func__, timeout.count());
 
   CHECK_NOTNULL(zmqLoop_);
@@ -430,7 +430,7 @@ AuthsaeCallbackHelpers::addTimeoutToEventLoop(
 // Remove an existing timeout from the event loop
 void
 AuthsaeCallbackHelpers::removeTimeoutFromEventLoop(int64_t timeoutId) {
-  VLOG(1) << folly::sformat(
+  VLOG(8) << folly::sformat(
       "AuthsaeCallbackHelpers::{}(timeoutId: {})", __func__, timeoutId);
 
   CHECK_NOTNULL(zmqLoop_);

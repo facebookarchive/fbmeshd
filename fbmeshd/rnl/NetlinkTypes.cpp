@@ -49,10 +49,10 @@ RouteBuilder::loadFromObject(struct rtnl_route* obj) {
   std::array<char, kIpAddrBufSize> ipAddrBuf{""};
   if (nl_addr_get_prefixlen(dst) == 0) {
     if (nl_addr_get_family(dst) == AF_INET6) {
-      VLOG(3) << "Creating a V6 default route";
+      VLOG(8) << "Creating a V6 default route";
       prefix = folly::IPAddress::createNetwork("::/0");
     } else if (nl_addr_get_family(dst) == AF_INET) {
-      VLOG(3) << "Creating a V4 default route";
+      VLOG(8) << "Creating a V4 default route";
       prefix = folly::IPAddress::createNetwork("0.0.0.0/0");
     } else {
       throw rnl::NlException("Unknown address family for default route");
@@ -1313,7 +1313,7 @@ NeighborBuilder::buildFromObject(
   builder.setLinkAddress(macAddress);
 
   std::array<char, 128> stateBuf = {""};
-  VLOG(4) << "Built neighbor entry: "
+  VLOG(8) << "Built neighbor entry: "
           << " family " << rtnl_neigh_get_family(neighbor) << " IfIndex "
           << rtnl_neigh_get_ifindex(neighbor) << " : " << ipAddress.str()
           << " -> " << macAddress.toString() << " state "

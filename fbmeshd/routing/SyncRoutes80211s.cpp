@@ -69,7 +69,7 @@ isInterfaceUp(std::string interface) {
     return false;
   }
 
-  VLOG(10) << folly::sformat(
+  VLOG(8) << folly::sformat(
       "Detected interface {} is {}", interface, up ? "up" : "down");
   return up;
 }
@@ -159,10 +159,10 @@ SyncRoutes80211s::doSyncRoutes() {
     }
   }
   if (bestGate) {
-    VLOG(10) << "Best gate: " << bestGate->first
+    VLOG(8) << "Best gate: " << bestGate->first
              << " with metric: " << bestGate->second;
   } else {
-    VLOG(10) << "No gate found";
+    VLOG(8) << "No gate found";
   }
   if (currentGate_ && isCurrentGateStillAlive) {
     if (bestGate->second < currentGate_->second) {
@@ -172,10 +172,10 @@ SyncRoutes80211s::doSyncRoutes() {
     currentGate_ = bestGate;
   }
   if (currentGate_) {
-    VLOG(10) << "Current gate: " << currentGate_->first
+    VLOG(8) << "Current gate: " << currentGate_->first
              << " with metric: " << currentGate_->second;
   } else {
-    VLOG(10) << "No current gate found";
+    VLOG(8) << "No current gate found";
   }
 
   auto destination =

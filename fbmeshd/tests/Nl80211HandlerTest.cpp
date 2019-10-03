@@ -52,12 +52,12 @@ class Nl80211HandlerTest : public ::testing::Test {
     }
     auto hwsim_output =
         exec("modprobe -r mac80211-hwsim; modprobe mac80211-hwsim radios=6");
-    VLOG(1) << "Reloaded mac80211-hwsim";
+    VLOG(8) << "Reloaded mac80211-hwsim";
 
     // If we ever test anything with encryption or userspace peering, we will
     // crash because this global pointer is initialised; clear it between tests
     Nl80211Handler::globalNlHandler = nullptr;
-    VLOG(1) << "Cleared globalNlHandler pointer";
+    VLOG(8) << "Cleared globalNlHandler pointer";
 
     // Because the gflags session persists until the death of the executable
     // (past the end of a single test), configuration for a given test can leak

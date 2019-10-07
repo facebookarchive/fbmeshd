@@ -213,8 +213,8 @@ SyncRoutes80211s::doSyncRoutes() {
       meshIfIndex, meshAddrs, AF_INET6, RT_SCOPE_UNIVERSE);
 
   if (isGateBeforeRouteSync_ != isGate) {
-    netlinkSocket_.syncUnicastRoutes(98, std::move(unicastRouteDb)).get();
-    netlinkSocket_.syncLinkRoutes(98, std::move(linkRouteDb)).get();
+    netlinkSocket_.syncUnicastRoutes(98, unicastRouteDb).get();
+    netlinkSocket_.syncLinkRoutes(98, linkRouteDb).get();
   }
 
   destination = std::make_pair<folly::IPAddress, uint8_t>(

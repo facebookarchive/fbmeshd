@@ -315,8 +315,9 @@ main(int argc, char* argv[]) {
   StatsClient statsClient{};
 
   LOG(INFO) << "Creating GatewayConnectivityMonitor...";
+  folly::EventBase gcmEventLoop;
   GatewayConnectivityMonitor gatewayConnectivityMonitor{
-      &routingEventLoop,
+      &gcmEventLoop,
       nlHandler,
       FLAGS_gateway_connectivity_monitor_interface,
       std::move(gatewayConnectivityMonitorAddresses),
@@ -332,6 +333,14 @@ main(int argc, char* argv[]) {
       gateway11sRootRouteProgrammer.get(),
       routing.get(),
       statsClient};
+
+  static constexpr auto gcmId{"GatewayConnectivityMonitor"};
+  allThreads.emplace_back(std::thread([&gcmEventLoop]() noexcept {
+    LOG(INFO) << "Starting GatewayConnectivityMonitor thread...";
+    folly::setThreadName(gcmId);
+    gcmEventLoop.loopForever();
+    LOG(INFO) << "GatewayConnectivityMonitor thread stopped.";
+  }));
 
   // create fbmeshd thrift server
   auto server = std::make_unique<apache::thrift::ThriftServer>();
@@ -376,6 +385,8 @@ main(int argc, char* argv[]) {
 
   routing->resetSendPacketCallback();
   routingEventLoop.terminateLoopSoon();
+
+  gcmEventLoop.terminateLoopSoon();
 
   if (gateway11sRootRouteProgrammer) {
     gateway11sRootRouteProgrammer->stop();

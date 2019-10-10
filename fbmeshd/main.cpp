@@ -343,18 +343,21 @@ main(int argc, char* argv[]) {
   }));
 
   // create fbmeshd thrift server
+  LOG(INFO) << "Starting thrift server...";
   auto server = std::make_unique<apache::thrift::ThriftServer>();
-  allThreads.emplace_back(
-      std::thread([&server, &nlHandler, &evl, &routing, &statsClient]() {
-        folly::EventBase evb;
+  allThreads.emplace_back(std::thread(
+      [&routingEventLoop, &server, &nlHandler, &routing, &statsClient]() {
         server->setInterface(std::make_unique<MeshServiceHandler>(
-            evl, nlHandler, routing.get(), statsClient));
-        server->getEventBaseManager()->setEventBase(&evb, false);
+            routingEventLoop, nlHandler, routing.get(), statsClient));
+
+        folly::EventBase internalEvb;
+        server->getEventBaseManager()->setEventBase(&internalEvb, false);
+
         server->setPort(FLAGS_fbmeshd_service_port);
 
-        LOG(INFO) << "Starting fbmeshd server thread ...";
+        LOG(INFO) << "Starting thrift server thread...";
         server->serve();
-        LOG(INFO) << "fbmeshd server thread stopped.";
+        LOG(INFO) << "Stopped thrift server thread.";
       }));
 
 #ifdef ENABLE_SYSTEMD_NOTIFY
@@ -371,7 +374,7 @@ main(int argc, char* argv[]) {
   LOG(INFO) << "Leaving mesh...";
   nlHandler.leaveMeshes();
 
-  LOG(INFO) << "Reclaiming thrift server thread";
+  LOG(INFO) << "Stopping thrift server thread...";
   server->stop();
 
   syncRoutes80211s->stop();

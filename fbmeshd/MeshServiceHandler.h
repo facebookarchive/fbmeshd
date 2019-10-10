@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <folly/Format.h>
 #include <folly/Portability.h>
 #include <folly/futures/Future.h>
 
@@ -26,18 +27,18 @@ class MeshServiceHandler final : public thrift::MeshServiceSvIf {
   MeshServiceHandler& operator=(MeshServiceHandler&&) = delete;
 
  private:
-  fbzmq::ZmqEventLoop& evl_;
+  folly::EventBase& evb_;
   Nl80211Handler& nlHandler_;
   Routing* routing_;
   StatsClient& statsClient_;
 
  public:
   MeshServiceHandler(
-      fbzmq::ZmqEventLoop& evl,
+      folly::EventBase& evb,
       Nl80211Handler& nlHandler,
       Routing* routing,
       StatsClient& statsClient)
-      : evl_(evl),
+      : evb_(evb),
         nlHandler_(nlHandler),
         routing_(routing),
         statsClient_(statsClient) {}
@@ -51,10 +52,11 @@ class MeshServiceHandler final : public thrift::MeshServiceSvIf {
       std::unique_ptr<std::string>& ifNamePtr,
       std::function<bool(std::string&, _returnType*)> nlhfp,
       const std::string& errMsg) {
+    VLOG(8) << folly::sformat("MeshServiceHandler::{}()", __func__);
     folly::Promise<_returnType> promise;
     auto future = promise.getFuture();
     std::string ifName = *ifNamePtr;
-    evl_.runInEventLoop(
+    evb_.runInEventBaseThread(
         [promise = std::move(promise), ifName, nlhfp, errMsg]() mutable {
           try {
             _returnType tempRet;
@@ -80,6 +82,7 @@ class MeshServiceHandler final : public thrift::MeshServiceSvIf {
   getPeers(
       std::vector<std::string>& returnVal,
       std::unique_ptr<std::string> ifNamePtr) override {
+    VLOG(8) << folly::sformat("MeshServiceHandler::{}()", __func__);
     serviceFunc<std::vector<std::string>>(
         returnVal,
         ifNamePtr,
@@ -96,6 +99,7 @@ class MeshServiceHandler final : public thrift::MeshServiceSvIf {
   getMetrics(
       thrift::PeerMetrics& returnVal,
       std::unique_ptr<std::string> ifNamePtr) override {
+    VLOG(8) << folly::sformat("MeshServiceHandler::{}()", __func__);
     serviceFunc<thrift::PeerMetrics>(
         returnVal,
         ifNamePtr,
@@ -116,6 +120,7 @@ class MeshServiceHandler final : public thrift::MeshServiceSvIf {
   void
   getMesh(thrift::Mesh& returnVal, std::unique_ptr<std::string> ifNamePtr)
       override {
+    VLOG(8) << folly::sformat("MeshServiceHandler::{}()", __func__);
     serviceFunc<thrift::Mesh>(
         returnVal,
         ifNamePtr,
@@ -128,6 +133,7 @@ class MeshServiceHandler final : public thrift::MeshServiceSvIf {
 
   void
   dumpStats(std::vector<thrift::StatCounter>& ret) override {
+    VLOG(8) << folly::sformat("MeshServiceHandler::{}()", __func__);
     auto stats = statsClient_.getStats();
     for (const auto& it : stats) {
       ret.push_back(thrift::StatCounter{
@@ -140,6 +146,7 @@ class MeshServiceHandler final : public thrift::MeshServiceSvIf {
 
   void
   dumpMpath(std::vector<thrift::MpathEntry>& ret) override {
+    VLOG(8) << folly::sformat("MeshServiceHandler::{}()", __func__);
     if (!routing_) {
       return;
     }

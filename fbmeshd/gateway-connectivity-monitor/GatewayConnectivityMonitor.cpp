@@ -45,7 +45,6 @@ GatewayConnectivityMonitor::GatewayConnectivityMonitor(
     std::chrono::seconds maxSuppressLimit,
     unsigned int robustness,
     uint8_t setRootModeIfGate,
-    Gateway11sRootRouteProgrammer* gateway11sRootRouteProgrammer,
     Routing* routing,
     StatsClient& statsClient)
     : RouteDampener{evb,
@@ -60,7 +59,6 @@ GatewayConnectivityMonitor::GatewayConnectivityMonitor(
       monitorSocketTimeout_{monitorSocketTimeout},
       robustness_{robustness},
       setRootModeIfGate_{setRootModeIfGate},
-      gateway11sRootRouteProgrammer_{gateway11sRootRouteProgrammer},
       routing_{routing},
       statsClient_{statsClient} {
   // Disable reverse path filtering, i.e.
@@ -168,9 +166,6 @@ GatewayConnectivityMonitor::advertiseDefaultRoute() {
   if (setRootModeIfGate_ != 0) {
     nlHandler_.setRootMode(setRootModeIfGate_);
   }
-  if (gateway11sRootRouteProgrammer_) {
-    gateway11sRootRouteProgrammer_->setGatewayStatus(true);
-  }
   if (routing_) {
     routing_->setGatewayStatus(true);
   }
@@ -181,9 +176,6 @@ GatewayConnectivityMonitor::withdrawDefaultRoute() {
   VLOG(8) << folly::sformat("GatewayConnectivityMonitor::{}()", __func__);
   if (setRootModeIfGate_ != 0) {
     nlHandler_.setRootMode(0);
-  }
-  if (gateway11sRootRouteProgrammer_) {
-    gateway11sRootRouteProgrammer_->setGatewayStatus(false);
   }
   if (routing_) {
     routing_->setGatewayStatus(false);

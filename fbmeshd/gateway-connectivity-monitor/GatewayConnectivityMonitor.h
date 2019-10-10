@@ -12,7 +12,6 @@
 #include <folly/io/async/EventBase.h>
 
 #include <fbmeshd/802.11s/Nl80211Handler.h>
-#include <fbmeshd/gateway-11s-root-route-programmer/Gateway11sRootRouteProgrammer.h>
 #include <fbmeshd/gateway-connectivity-monitor/RouteDampener.h>
 #include <fbmeshd/gateway-connectivity-monitor/StatsClient.h>
 #include <fbmeshd/routing/Routing.h>
@@ -35,7 +34,6 @@ class GatewayConnectivityMonitor : public RouteDampener {
       std::chrono::seconds maxSuppressLimit,
       unsigned int robustness,
       uint8_t setRootModeIfGate,
-      Gateway11sRootRouteProgrammer* gateway11sRootRouteProgrammer,
       Routing* routing,
       StatsClient& statsClient);
 
@@ -68,7 +66,6 @@ class GatewayConnectivityMonitor : public RouteDampener {
   const std::chrono::seconds monitorSocketTimeout_;
   const unsigned int robustness_;
   const uint8_t setRootModeIfGate_;
-  Gateway11sRootRouteProgrammer* gateway11sRootRouteProgrammer_{nullptr};
   Routing* routing_{nullptr};
 
   std::unique_ptr<folly::AsyncTimeout> connectivityCheckTimer_;

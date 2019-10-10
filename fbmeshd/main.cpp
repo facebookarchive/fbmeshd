@@ -26,7 +26,6 @@
 #include <fbmeshd/SignalHandler.h>
 #include <fbmeshd/common/Constants.h>
 #include <fbmeshd/common/Util.h>
-#include <fbmeshd/gateway-11s-root-route-programmer/Gateway11sRootRouteProgrammer.h>
 #include <fbmeshd/gateway-connectivity-monitor/GatewayConnectivityMonitor.h>
 #include <fbmeshd/gateway-connectivity-monitor/RouteDampener.h>
 #include <fbmeshd/notifier/Notifier.h>
@@ -111,19 +110,6 @@ DEFINE_uint32(
     "The route dampener maximum time a default route can be suppressed before"
     " it will be automatically unsupressed.");
 
-DEFINE_bool(
-    enable_gateway_11s_root_route_programmer,
-    false,
-    "If set, enables creating routes to gate based on 11s root announcements");
-DEFINE_double(
-    gateway_11s_root_route_programmer_gateway_change_threshold_factor,
-    2,
-    "threshold factor for doing a gateway change");
-DEFINE_uint32(
-    gateway_11s_root_route_programmer_interval_s,
-    1,
-    "how often to sync routes with the fib");
-
 DEFINE_uint32(routing_ttl, 32, "TTL for routing elements");
 DEFINE_int32(routing_tos, 192, "ToS value for routing messages");
 DEFINE_uint32(
@@ -202,26 +188,6 @@ main(int argc, char* argv[]) {
 
   LOG(INFO) << "Creating RouteUpdateMonitor...";
   RouteUpdateMonitor routeMonitor{&routingEventLoop, nlHandler};
-
-  std::unique_ptr<Gateway11sRootRouteProgrammer> gateway11sRootRouteProgrammer;
-  static constexpr auto gateway11sRootRouteProgrammerId{
-      "Gateway11sRootRouteProgrammer"};
-  if (FLAGS_enable_gateway_11s_root_route_programmer) {
-    gateway11sRootRouteProgrammer = std::make_unique<
-        Gateway11sRootRouteProgrammer>(
-        nlHandler,
-        FLAGS_mesh_ifname,
-        std::chrono::seconds{
-            FLAGS_gateway_11s_root_route_programmer_interval_s},
-        FLAGS_gateway_11s_root_route_programmer_gateway_change_threshold_factor);
-    allThreads.emplace_back(
-        std::thread([&gateway11sRootRouteProgrammer]() noexcept {
-          LOG(INFO) << "Starting Gateway11sRootRouteProgrammer thread...";
-          folly::setThreadName(gateway11sRootRouteProgrammerId);
-          gateway11sRootRouteProgrammer->run();
-          LOG(INFO) << "Gateway11sRootRouteProgrammer thread stopped.";
-        }));
-  }
 
   LOG(INFO) << "Creating MetricManager80211s...";
   std::unique_ptr<MetricManager80211s> metricManager80211s =
@@ -330,7 +296,6 @@ main(int argc, char* argv[]) {
       std::chrono::seconds{FLAGS_route_dampener_max_suppress_limit},
       FLAGS_gateway_connectivity_monitor_robustness,
       static_cast<uint8_t>(FLAGS_gateway_connectivity_monitor_set_root_mode),
-      gateway11sRootRouteProgrammer.get(),
       routing.get(),
       statsClient};
 
@@ -390,11 +355,6 @@ main(int argc, char* argv[]) {
   routingEventLoop.terminateLoopSoon();
 
   gcmEventLoop.terminateLoopSoon();
-
-  if (gateway11sRootRouteProgrammer) {
-    gateway11sRootRouteProgrammer->stop();
-    gateway11sRootRouteProgrammer->waitUntilStopped();
-  }
 
   // Wait for all threads to finish
   for (auto& t : allThreads) {

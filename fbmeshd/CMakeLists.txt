@@ -91,7 +91,6 @@ add_executable(fbmeshd
     fbmeshd/802.11s/NetInterface.cpp
     fbmeshd/802.11s/Nl80211Handler.cpp
     fbmeshd/common/Constants.cpp
-    fbmeshd/gateway-11s-root-route-programmer/Gateway11sRootRouteProgrammer.cpp
     fbmeshd/gateway-connectivity-monitor/GatewayConnectivityMonitor.cpp
     fbmeshd/gateway-connectivity-monitor/RouteDampener.cpp
     fbmeshd/gateway-connectivity-monitor/Socket.cpp

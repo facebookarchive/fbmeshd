@@ -113,9 +113,13 @@ DEFINE_uint32(
 DEFINE_uint32(routing_ttl, 32, "TTL for routing elements");
 DEFINE_int32(routing_tos, 192, "ToS value for routing messages");
 DEFINE_uint32(
-    routing_active_path_timeout_ms, 30000, "Routing active path timeout (ms)");
+    routing_active_path_timeout_ms,
+    30000,
+    "Routing active path timeout (ms)");
 DEFINE_uint32(
-    routing_root_pann_interval_ms, 5000, "Routing PANN interval (ms)");
+    routing_root_pann_interval_ms,
+    5000,
+    "Routing PANN interval (ms)");
 DEFINE_uint32(
     routing_metric_manager_ewma_factor_log2,
     7,
@@ -147,8 +151,7 @@ const auto kWatchdogNotifyInterval{3s};
 
 } // namespace
 
-int
-main(int argc, char* argv[]) {
+int main(int argc, char* argv[]) {
   folly::init(&argc, &argv);
 
   // Set stdout to be line-buffered, to assist with integration testing that
@@ -200,6 +203,17 @@ main(int argc, char* argv[]) {
           kMetricManagerBaseBitrate,
           FLAGS_routing_metric_manager_rssi_weight);
 
+  LOG(INFO) << "Creating PeriodicPinger...";
+  std::unique_ptr<PeriodicPinger> periodicPinger =
+      std::make_unique<PeriodicPinger>(
+          &routingEventLoop,
+          folly::IPAddressV6{folly::sformat("ff02::1%{}", FLAGS_mesh_ifname)},
+          folly::IPAddressV6{
+              folly::IPAddressV6::LinkLocalTag::LINK_LOCAL,
+              nlHandler.lookupMeshNetif().maybeMacAddress.value()},
+          kPeriodicPingerInterval,
+          FLAGS_mesh_ifname);
+
   std::unique_ptr<Routing> routing = std::make_unique<Routing>(
       &routingEventLoop,
       metricManager80211s.get(),
@@ -211,6 +225,18 @@ main(int argc, char* argv[]) {
       std::make_unique<UDPRoutingPacketTransport>(
           &routingEventLoop, FLAGS_mesh_ifname, 6668, FLAGS_routing_tos);
 
+  routing->setSendPacketCallback(
+      [&routingPacketTransport](
+          folly::MacAddress da, std::unique_ptr<folly::IOBuf> buf) {
+        routingPacketTransport->sendPacket(da, std::move(buf));
+      });
+
+  routingPacketTransport->setReceivePacketCallback(
+      [&routing](folly::MacAddress sa, std::unique_ptr<folly::IOBuf> buf) {
+        routing->receivePacket(sa, std::move(buf));
+      });
+
+  LOG(INFO) << "Creating NetlinkProtocolSocket...";
   // set up NetlinkProtocolSocket in a new thread to program the linux kernel
   auto nlProtocolSocketEventLoop = std::make_unique<fbzmq::ZmqEventLoop>();
   std::unique_ptr<rnl::NetlinkProtocolSocket> nlProtocolSocket;
@@ -226,42 +252,19 @@ main(int argc, char* argv[]) {
       }));
   nlProtocolSocketEventLoop->waitUntilRunning();
 
-  LOG(INFO) << "Creating PeriodicPinger...";
-  std::unique_ptr<PeriodicPinger> periodicPinger =
-      std::make_unique<PeriodicPinger>(
-          &routingEventLoop,
-          folly::IPAddressV6{folly::sformat("ff02::1%{}", FLAGS_mesh_ifname)},
-          folly::IPAddressV6{
-              folly::IPAddressV6::LinkLocalTag::LINK_LOCAL,
-              nlHandler.lookupMeshNetif().maybeMacAddress.value()},
-          kPeriodicPingerInterval,
-          FLAGS_mesh_ifname);
+  LOG(INFO) << "Creating NetlinkSocket...";
+  std::unique_ptr<rnl::NetlinkSocket> nlSocket =
+      std::make_unique<rnl::NetlinkSocket>(
+          &evl, nullptr, std::move(nlProtocolSocket));
 
+  LOG(INFO) << "Creating SyncRoutes80211s...";
   std::unique_ptr<SyncRoutes80211s> syncRoutes80211s =
       std::make_unique<SyncRoutes80211s>(
+          &routingEventLoop,
           routing.get(),
-          std::move(nlProtocolSocket),
+          nlSocket.get(),
           nlHandler.lookupMeshNetif().maybeMacAddress.value(),
           FLAGS_mesh_ifname);
-
-  static constexpr auto syncRoutes80211sId{"SyncRoutes80211s"};
-  allThreads.emplace_back(std::thread([&syncRoutes80211s]() noexcept {
-    LOG(INFO) << "Starting SyncRoutes80211s thread...";
-    folly::setThreadName(syncRoutes80211sId);
-    syncRoutes80211s->run();
-    LOG(INFO) << "SyncRoutes80211s thread stopped.";
-  }));
-
-  routing->setSendPacketCallback(
-      [&routingPacketTransport](
-          folly::MacAddress da, std::unique_ptr<folly::IOBuf> buf) {
-        routingPacketTransport->sendPacket(da, std::move(buf));
-      });
-
-  routingPacketTransport->setReceivePacketCallback(
-      [&routing](folly::MacAddress sa, std::unique_ptr<folly::IOBuf> buf) {
-        routing->receivePacket(sa, std::move(buf));
-      });
 
   static constexpr auto routingId{"Routing"};
   allThreads.emplace_back(std::thread([&routingEventLoop]() noexcept {
@@ -341,9 +344,6 @@ main(int argc, char* argv[]) {
 
   LOG(INFO) << "Stopping thrift server thread...";
   server->stop();
-
-  syncRoutes80211s->stop();
-  syncRoutes80211s->waitUntilStopped();
 
   nlProtocolSocket.reset();
   if (nlProtocolSocketEventLoop) {

@@ -9,18 +9,20 @@
 
 #include <chrono>
 
-#include <fbzmq/async/ZmqEventLoop.h>
+#include <folly/io/async/AsyncTimeout.h>
+#include <folly/io/async/EventBase.h>
 
 #include <fbmeshd/rnl/NetlinkSocket.h>
 #include <fbmeshd/routing/Routing.h>
 
 namespace fbmeshd {
 
-class SyncRoutes80211s : public fbzmq::ZmqEventLoop {
+class SyncRoutes80211s {
  public:
   SyncRoutes80211s(
+      folly::EventBase* evb,
       Routing* routing,
-      std::unique_ptr<rnl::NetlinkProtocolSocket> nlProtocolSocket,
+      rnl::NetlinkSocket* netlinkSocket,
       folly::MacAddress nodeAddr,
       const std::string& interface);
 
@@ -39,8 +41,8 @@ class SyncRoutes80211s : public fbzmq::ZmqEventLoop {
   folly::MacAddress nodeAddr_;
   const std::string& interface_;
 
-  std::unique_ptr<fbzmq::ZmqTimeout> syncRoutesTimer_;
-  rnl::NetlinkSocket netlinkSocket_;
+  std::unique_ptr<folly::AsyncTimeout> syncRoutesTimer_;
+  rnl::NetlinkSocket* netlinkSocket_;
 
   folly::Optional<std::pair<folly::MacAddress, uint32_t>> currentGate_;
   bool isGateBeforeRouteSync_{false};

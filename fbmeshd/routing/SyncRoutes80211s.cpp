@@ -77,25 +77,28 @@ isInterfaceUp(std::string interface) {
 } // namespace
 
 SyncRoutes80211s::SyncRoutes80211s(
+    folly::EventBase* evb,
     Routing* routing,
-    std::unique_ptr<rnl::NetlinkProtocolSocket> nlProtocolSocket,
+    rnl::NetlinkSocket* netlinkSocket,
     folly::MacAddress nodeAddr,
     const std::string& interface)
     : routing_{routing},
       nodeAddr_{nodeAddr},
       interface_{interface},
-      netlinkSocket_{this, nullptr, std::move(nlProtocolSocket)} {
+      netlinkSocket_{netlinkSocket} {
   // Set timer to sync routes
-  syncRoutesTimer_ =
-      fbzmq::ZmqTimeout::make(this, [this]() noexcept { doSyncRoutes(); });
-  syncRoutesTimer_->scheduleTimeout(kSyncRoutesInterval, true);
+  syncRoutesTimer_ = folly::AsyncTimeout::make(*evb, [this]() noexcept {
+    doSyncRoutes();
+    syncRoutesTimer_->scheduleTimeout(kSyncRoutesInterval);
+  });
+  syncRoutesTimer_->scheduleTimeout(kSyncRoutesInterval);
 }
 
 void
 SyncRoutes80211s::doSyncRoutes() {
   VLOG(8) << folly::sformat("SyncRoutes80211s::{}()", __func__);
 
-  auto meshIfIndex = netlinkSocket_.getIfIndex(interface_).get();
+  auto meshIfIndex = netlinkSocket_->getIfIndex(interface_).get();
   auto isGate = routing_->getGatewayStatus();
   auto meshPaths = routing_->getMeshPaths();
 
@@ -104,7 +107,7 @@ SyncRoutes80211s::doSyncRoutes() {
   std::vector<rnl::IfAddress> meshAddrs;
 
   const auto kTaygaIfName{"tayga"};
-  auto taygaIfIndex = netlinkSocket_.getIfIndex(kTaygaIfName).get();
+  auto taygaIfIndex = netlinkSocket_->getIfIndex(kTaygaIfName).get();
   bool taygaIfUp = isInterfaceUp(kTaygaIfName);
 
   folly::Optional<std::pair<folly::MacAddress, uint32_t>> bestGate;
@@ -209,12 +212,12 @@ SyncRoutes80211s::doSyncRoutes() {
                           .setIfIndex(meshIfIndex)
                           .build());
 
-  netlinkSocket_.syncIfAddress(
+  netlinkSocket_->syncIfAddress(
       meshIfIndex, meshAddrs, AF_INET6, RT_SCOPE_UNIVERSE);
 
   if (isGateBeforeRouteSync_ != isGate) {
-    netlinkSocket_.syncUnicastRoutes(98, unicastRouteDb).get();
-    netlinkSocket_.syncLinkRoutes(98, linkRouteDb).get();
+    netlinkSocket_->syncUnicastRoutes(98, unicastRouteDb).get();
+    netlinkSocket_->syncLinkRoutes(98, linkRouteDb).get();
   }
 
   destination = std::make_pair<folly::IPAddress, uint8_t>(
@@ -263,6 +266,6 @@ SyncRoutes80211s::doSyncRoutes() {
   }
   isGateBeforeRouteSync_ = isGate;
 
-  netlinkSocket_.syncUnicastRoutes(98, std::move(unicastRouteDb)).get();
-  netlinkSocket_.syncLinkRoutes(98, std::move(linkRouteDb)).get();
+  netlinkSocket_->syncUnicastRoutes(98, std::move(unicastRouteDb)).get();
+  netlinkSocket_->syncLinkRoutes(98, std::move(linkRouteDb)).get();
 }

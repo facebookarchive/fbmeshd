@@ -164,11 +164,12 @@ const auto mpath_policy_{[]() {
 } // namespace
 
 Nl80211Handler::Nl80211Handler(
-    fbzmq::ZmqEventLoop& zmqLoop,
+    folly::EventBase* evb,
     const std::string& interfaceName,
     bool userspace_mesh_peering)
-    : interfaceName_{interfaceName},
-      zmqLoop_{zmqLoop},
+    : folly::EventHandler(),
+      interfaceName_{interfaceName},
+      evb_{evb},
       userspace_mesh_peering_{userspace_mesh_peering} {
   VLOG(8) << folly::sformat("Nl80211Handler::{}()", __func__);
 
@@ -193,6 +194,9 @@ Nl80211Handler::Nl80211Handler(
   }
 
   applyConfiguration();
+
+  initHandler(evb, folly::NetworkSocket::fromFd(nlEventSocket_.getFd()));
+  registerHandler(folly::EventHandler::READ | folly::EventHandler::PERSIST);
 }
 
 // Print the mesh configuration if sufficient verbosity is selected
@@ -332,17 +336,21 @@ Nl80211Handler::initNlSockets() {
 
   // Sequence checking must be disabled for events
   nlEventSocket_.disableSequenceChecking();
+}
 
-  // Add event socket to event loop
-  zmqLoop_.addSocketFd(nlEventSocket_.getFd(), POLLIN, [this](int) noexcept {
+void
+Nl80211Handler::handlerReady(uint16_t events) noexcept {
+  VLOG(8) << folly::sformat("Nl80211Handler::{}()", __func__);
+  uint16_t relevantEvents = uint16_t(events & folly::EventHandler::READ);
+  if (relevantEvents == folly::EventHandler::READ) {
     try {
       eventDataReady();
     } catch (std::exception const& e) {
       LOG(ERROR) << "Error processing data on event socket: " << e.what();
       return;
     }
-  });
-}
+  }
+};
 
 // This method is called by the event loop when there is a message ready on the
 // event socket. It receives the message and sets up processEvent() as a
@@ -1323,12 +1331,21 @@ Nl80211Handler::tearDown() {
 }
 
 Nl80211Handler::~Nl80211Handler() {
+  unregisterHandler();
+
+  int fd = nlEventSocket_.getFd();
+  if (fd >= 0) {
+    changeHandlerFD(folly::NetworkSocket());
+    ::close(fd);
+    fd = -1;
+  }
+
   tearDown();
 }
 
 status_t
 Nl80211Handler::handleNewCandidate(const GenericNetlinkMessage& msg) {
-  VLOG(8) << folly::sformat("::{}()", __func__);
+  VLOG(8) << folly::sformat("Nl80211Handler::{}()", __func__);
 
   const auto tb = msg.getAttributes<NL80211_ATTR_MAX>();
 
@@ -1629,34 +1646,34 @@ Nl80211Handler::getMesh() {
         const auto tb = msg.getAttributes<NL80211_ATTR_MAX>();
 
         if (!tb[NL80211_ATTR_WIPHY_FREQ]) {
-          LOG(INFO) << "freq info missing";
+          VLOG(8) << "freq info missing";
           return NL_SKIP;
         }
 
         mesh.frequency = nla_get_u32(tb[NL80211_ATTR_WIPHY_FREQ]);
 
         if (!tb[NL80211_ATTR_WIPHY_TX_POWER_LEVEL]) {
-          LOG(INFO) << "tx power info missing";
+          VLOG(8) << "tx power info missing";
           return NL_SKIP;
         }
 
         mesh.txPower = nla_get_u32(tb[NL80211_ATTR_WIPHY_TX_POWER_LEVEL]);
 
         if (!tb[NL80211_ATTR_CENTER_FREQ1]) {
-          LOG(INFO) << "center_freq_1 info missing";
+          VLOG(8) << "center_freq_1 info missing";
           return NL_SKIP;
         } else {
           mesh.centerFreq1 = nla_get_u32(tb[NL80211_ATTR_CENTER_FREQ1]);
         }
 
         if (!tb[NL80211_ATTR_CENTER_FREQ2]) {
-          LOG(INFO) << "center_freq_2 info missing";
+          VLOG(8) << "center_freq_2 info missing";
         } else {
           mesh.centerFreq2 = nla_get_u32(tb[NL80211_ATTR_CENTER_FREQ2]);
         }
 
         if (!tb[NL80211_ATTR_CHANNEL_WIDTH]) {
-          LOG(INFO) << "channel_width info missing";
+          VLOG(8) << "channel_width info missing";
           return NL_SKIP;
         } else {
           mesh.channelWidth = nla_get_u32(tb[NL80211_ATTR_CHANNEL_WIDTH]);
@@ -1686,7 +1703,7 @@ Nl80211Handler::getStationsInfo() {
         const auto tb = msg.getAttributes<NL80211_ATTR_MAX>();
 
         if (!tb[NL80211_ATTR_STA_INFO]) {
-          LOG(INFO) << "Station stats missing, skipping";
+          VLOG(8) << "Station stats missing, skipping";
           return NL_SKIP;
         }
 
@@ -1706,11 +1723,11 @@ Nl80211Handler::getStationsInfo() {
               rssi = static_cast<int8_t>(
                   nla_get_u8(sinfo[NL80211_STA_INFO_SIGNAL_AVG]));
               if (rssi == 0) {
-                LOG(INFO) << "Station RSSI invalid, skipping";
+                VLOG(8) << "Station RSSI invalid, skipping";
                 return NL_SKIP;
               }
             } else {
-              LOG(INFO) << "Station RSSI missing, skipping";
+              VLOG(8) << "Station RSSI missing, skipping";
               return NL_SKIP;
             }
 
@@ -1770,7 +1787,7 @@ Nl80211Handler::getMetrics() {
         const auto tb = msg.getAttributes<NL80211_ATTR_MAX>();
 
         if (!tb[NL80211_ATTR_MPATH_INFO]) {
-          LOG(INFO) << "mpath info missing";
+          VLOG(8) << "mpath info missing";
           return NL_SKIP;
         }
 

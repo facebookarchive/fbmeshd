@@ -16,6 +16,7 @@
 #include <gtest/gtest.h>
 
 #include <folly/FileUtil.h>
+#include <folly/io/async/EventBase.h>
 #include <folly/test/TestUtils.h>
 
 #include <fbmeshd/802.11s/Nl80211Handler.h>
@@ -93,7 +94,7 @@ class Nl80211HandlerTest : public ::testing::Test {
     gflags::ParseCommandLineFlags(&argCount, &args, false);
   }
 
-  fbzmq::ZmqEventLoop zmqLoop_;
+  folly::EventBase evb_;
 
   Nl80211HandlerTest() {}
 };
@@ -116,7 +117,7 @@ TEST_F(Nl80211HandlerTest, ConfigurationBasicTest) {
 
   gflags::ParseCommandLineFlags(&argCount, &args, false);
   ASSERT_NO_THROW(({
-    Nl80211Handler nlHandler{zmqLoop_, kDefaultMeshIfName, false};
+    Nl80211Handler nlHandler{&evb_, kDefaultMeshIfName, false};
   }));
 
   ASSERT_EQ("bazooka", FLAGS_mesh_id);
@@ -141,7 +142,7 @@ TEST_F(Nl80211HandlerTest, ConfigurationInvalidChannelType) {
   gflags::ParseCommandLineFlags(&argCount, &args, false);
   ASSERT_THROW(
       ({
-        Nl80211Handler nlHandler{zmqLoop_, kDefaultMeshIfName, false};
+        Nl80211Handler nlHandler{&evb_, kDefaultMeshIfName, false};
       }),
       std::invalid_argument);
 }
@@ -157,7 +158,7 @@ TEST_F(Nl80211HandlerTest, ConfigurationTooLongMeshId) {
   gflags::ParseCommandLineFlags(&argCount, &args, false);
   ASSERT_THROW(
       ({
-        Nl80211Handler nlHandler{zmqLoop_, kDefaultMeshIfName, false};
+        Nl80211Handler nlHandler{&evb_, kDefaultMeshIfName, false};
       }),
       std::invalid_argument);
 }
@@ -167,7 +168,7 @@ TEST_F(Nl80211HandlerTest, ConfigurationTooLongIfName) {
   ASSERT_THROW(
       ({
         Nl80211Handler nlHandler{
-            zmqLoop_,
+            &evb_,
             "blahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblahblah",
             false};
       }),
@@ -186,7 +187,7 @@ TEST_F(Nl80211HandlerTest, ConfigurationTooLongPassword) {
   gflags::ParseCommandLineFlags(&argCount, &args, false);
   ASSERT_THROW(
       ({
-        Nl80211Handler nlHandler{zmqLoop_, kDefaultMeshIfName, false};
+        Nl80211Handler nlHandler{&evb_, kDefaultMeshIfName, false};
       }),
       std::invalid_argument);
 }
@@ -204,13 +205,13 @@ TEST_F(Nl80211HandlerTest, ConfigurationTooManySaeGroups) {
   gflags::ParseCommandLineFlags(&argCount, &args, false);
   ASSERT_THROW(
       ({
-        Nl80211Handler nlHandler{zmqLoop_, kDefaultMeshIfName, false};
+        Nl80211Handler nlHandler{&evb_, kDefaultMeshIfName, false};
       }),
       std::invalid_argument);
 }
 
 TEST_F(Nl80211HandlerTest, Nl80211HandlerFindsNetInterfaces) {
-  Nl80211Handler nlHandler{zmqLoop_, kDefaultMeshIfName, false};
+  Nl80211Handler nlHandler{&evb_, kDefaultMeshIfName, false};
 
   // Check if iw found the same number of mesh-capable interfaces
   auto iw_output = exec("iw phy");
@@ -227,7 +228,7 @@ TEST_F(Nl80211HandlerTest, Nl80211HandlerFindsNetInterfaces) {
 }
 
 TEST_F(Nl80211HandlerTest, Nl80211HandlerObtainsFrequencies) {
-  Nl80211Handler nlHandler{zmqLoop_, kDefaultMeshIfName, false};
+  Nl80211Handler nlHandler{&evb_, kDefaultMeshIfName, false};
 
   // Check if we found all the frequencies supported by a phy
   const NetInterface& netIf = nlHandler.lookupNetifFromPhy(0);
@@ -250,7 +251,7 @@ TEST_F(Nl80211HandlerTest, Nl80211HandlerWithInvalidFrequency) {
 
   gflags::ParseCommandLineFlags(&argCount, &args, false);
   ASSERT_THROW(
-      { Nl80211Handler(zmqLoop_, kDefaultMeshIfName, false); },
+      { Nl80211Handler(&evb_, kDefaultMeshIfName, false); },
       std::runtime_error);
 }
 
@@ -269,7 +270,7 @@ TEST_F(Nl80211HandlerTest, Nl80211HandlerAppliesMeshParams) {
   char** args = const_cast<char**>(constArgs.data());
 
   gflags::ParseCommandLineFlags(&argCount, &args, false);
-  Nl80211Handler nlHandler{zmqLoop_, kDefaultMeshIfName, false};
+  Nl80211Handler nlHandler{&evb_, kDefaultMeshIfName, false};
 
   ASSERT_EQ(nlHandler.joinMeshes(), R_SUCCESS);
 
@@ -291,7 +292,7 @@ TEST_F(Nl80211HandlerTest, Nl80211HandlerAppliesMeshParams) {
 
 TEST_F(Nl80211HandlerTest, Nl80211HandlerLookUpMeshNetInterface) {
   // Confirm that we correctly look up the single mesh NetInterface
-  Nl80211Handler nlHandler{zmqLoop_, kDefaultMeshIfName, false};
+  Nl80211Handler nlHandler{&evb_, kDefaultMeshIfName, false};
 
   ASSERT_TRUE(nlHandler.lookupMeshNetif().maybeIfName);
   ASSERT_EQ(nlHandler.lookupMeshNetif().maybeIfName.value(), "meshtest");
@@ -308,7 +309,7 @@ TEST_F(Nl80211HandlerTest, Nl80211HandlerJoinLeaveMesh) {
   char** args = const_cast<char**>(constArgs.data());
 
   gflags::ParseCommandLineFlags(&argCount, &args, false);
-  Nl80211Handler nlHandler{zmqLoop_, kDefaultMeshIfName, false};
+  Nl80211Handler nlHandler{&evb_, kDefaultMeshIfName, false};
 
   ASSERT_EQ(nlHandler.joinMeshes(), R_SUCCESS);
   ASSERT_EQ(nlHandler.leaveMeshes(), R_SUCCESS);
@@ -324,7 +325,7 @@ TEST_F(Nl80211HandlerTest, Nl80211HandlerGetMesh) {
   char** args = const_cast<char**>(constArgs.data());
 
   gflags::ParseCommandLineFlags(&argCount, &args, false);
-  Nl80211Handler nlHandler{zmqLoop_, kDefaultMeshIfName, false};
+  Nl80211Handler nlHandler{&evb_, kDefaultMeshIfName, false};
 
   nlHandler.joinMeshes();
   thrift::Mesh mesh = nlHandler.getMesh();

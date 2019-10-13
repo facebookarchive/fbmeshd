@@ -13,11 +13,16 @@ extern "C" {
 #include <authsae/sae.h>
 }
 
+#include <algorithm>
+#include <ctime>
+
 #include <glog/logging.h>
 #include <openssl/rand.h>
-#include <algorithm>
 
 #include <folly/Format.h>
+#include <folly/io/async/AsyncTimeout.h>
+#include <folly/io/async/EventBase.h>
+#include <folly/io/async/TimeoutManager.h>
 
 #include <fbmeshd/802.11s/Nl80211Handler.h>
 #include <fbmeshd/common/Constants.h>
@@ -25,7 +30,12 @@ extern "C" {
 using namespace fbmeshd;
 
 // Event loop pointer to allow control over additional sockets, timeouts, etc.
-fbzmq::ZmqEventLoop* AuthsaeCallbackHelpers::zmqLoop_{nullptr};
+folly::EventBase* AuthsaeCallbackHelpers::evb_{nullptr};
+
+// For tracking timeoutId to the AsyncTimeout object
+int AuthsaeCallbackHelpers::timeoutId_{1};
+folly::F14FastMap<int64_t, folly::AsyncTimeout*>
+    AuthsaeCallbackHelpers::timeouts_{{}};
 
 // These static C functions are declared and expected by authsae for the
 // encrypted mesh functionality. They serve as forwarders to the current
@@ -333,8 +343,8 @@ add_timeout_with_jitter(
   }
 
   // Add the requested callback to the event loop
-  int64_t timerId = AuthsaeCallbackHelpers::addTimeoutToEventLoop(
-      std::chrono::milliseconds(msec), [proc, data]() { (*proc)(data); });
+  int64_t timerId = AuthsaeCallbackHelpers::addTimeoutToEventBase(
+      std::chrono::milliseconds(msec), proc, data);
 
   // In authsae, timerid 0 is reserved, and addTimeoutToEventLoop() does not
   // return it - enforce this to be extra safer.
@@ -361,7 +371,7 @@ rem_timeout(timerid id) {
     return 0;
   }
 
-  AuthsaeCallbackHelpers::removeTimeoutFromEventLoop(id);
+  AuthsaeCallbackHelpers::removeTimeoutFromEventBase(id);
   VLOG(8) << folly::sformat("Removed timer (timerId {})", id);
   return id;
 }
@@ -402,43 +412,40 @@ getSaeCallbacks() {
 // Initialize the AuthsaeCallbackHelpers static class. In particular, store the
 // event loop pointer for use by other functions.
 void
-AuthsaeCallbackHelpers::init(fbzmq::ZmqEventLoop& zmqLoop) {
+AuthsaeCallbackHelpers::init(folly::EventBase* evb) {
   VLOG(8) << folly::sformat("AuthsaeCallbackHelpers::{}()", __func__);
-  AuthsaeCallbackHelpers::zmqLoop_ = &zmqLoop;
+  evb_ = evb;
 }
 
 // Add a timeout to the event loop. Returns the timeoutId that can be used to
 // remove the timeout if needed.
+
 int64_t
-AuthsaeCallbackHelpers::addTimeoutToEventLoop(
-    std::chrono::milliseconds timeout, fbzmq::TimeoutCallback callback) {
+AuthsaeCallbackHelpers::addTimeoutToEventBase(
+    std::chrono::milliseconds interval, timercb proc, void* data) {
   VLOG(8) << folly::sformat(
-      "AuthsaeCallbackHelpers::{}(timeout: {}ms)", __func__, timeout.count());
+      "AuthsaeCallbackHelpers::{}(timeout: {}ms)", __func__, interval.count());
 
-  CHECK_NOTNULL(zmqLoop_);
+  CHECK_NOTNULL(evb_);
 
-  // timeout ID 0 is reserved by authsae, but is a valid return value from zmq.
-  // In order to work around this, we abstract the internal zmq timeout ID from
-  // the public-facing timeout ID by using the formula:
-  //     publicTimeoutId = (privateTimeoutId + 1)
-  int64_t timeoutId =
-      zmqLoop_->scheduleTimeout(timeout, std::move(callback)) + 1;
-  assert(timeoutId != 0);
-  return timeoutId;
+  folly::AsyncTimeout* timeout =
+      folly::AsyncTimeout::make(
+          *evb_, [proc, data]() mutable noexcept { (*proc)(data); })
+          .release();
+  timeout->scheduleTimeout(interval);
+  timeouts_.emplace(timeoutId_, timeout);
+
+  return timeoutId_++;
 }
 
 // Remove an existing timeout from the event loop
 void
-AuthsaeCallbackHelpers::removeTimeoutFromEventLoop(int64_t timeoutId) {
+AuthsaeCallbackHelpers::removeTimeoutFromEventBase(int64_t timeoutId) {
   VLOG(8) << folly::sformat(
       "AuthsaeCallbackHelpers::{}(timeoutId: {})", __func__, timeoutId);
 
-  CHECK_NOTNULL(zmqLoop_);
+  CHECK_NOTNULL(evb_);
 
-  // timeout ID 0 is reserved by authsae, but is a valid return value from zmq.
-  // In order to work around this, we abstract the internal zmq timeout ID from
-  // the public-facing timeout ID by using the formula:
-  //     publicTimeoutId = (privateTimeoutId + 1)
-  assert(timeoutId != 0);
-  zmqLoop_->cancelTimeout(timeoutId - 1);
+  (timeouts_[timeoutId])->cancelTimeout();
+  timeouts_.erase(timeoutId);
 }

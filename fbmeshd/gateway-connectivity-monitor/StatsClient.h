@@ -7,15 +7,24 @@
 
 #pragma once
 
-#include <fbzmq/service/stats/ThreadData.h>
+#include <string>
+
+#include <folly/container/F14Map.h>
+#include <folly/stats/MultiLevelTimeSeries.h>
 
 namespace fbmeshd {
 
-// A class which wraps the fbzmq stats infra allowed for auto submitting of
-// stats.
+enum StatsType {
+  SUM = 0,
+  AVG = 1,
+};
+
+// This class is heavily inspired by fbzmq::StatsClient, the data structure
+// previously used here. In the process of removing dependency on fbzmq, this
+// slimmed down alternative was written in its place.
 class StatsClient final {
  public:
-  StatsClient() = default;
+  StatsClient();
   ~StatsClient() = default;
   StatsClient(const StatsClient&) = delete;
   StatsClient& operator=(const StatsClient&) = delete;
@@ -28,8 +37,13 @@ class StatsClient final {
   const std::unordered_map<std::string, int64_t> getStats();
 
  private:
-  // DS to keep track of stats
-  fbzmq::ThreadData tData_;
+  folly::F14FastMap<
+      std::string,
+      folly::MultiLevelTimeSeries<int64_t>>
+      stats_;
+  folly::F14FastMap<std::string, StatsType> types_;
+
+  void addStatValue(std::string const& key, int64_t value, StatsType type);
 };
 
 } // namespace fbmeshd

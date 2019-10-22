@@ -16,6 +16,7 @@
 #include <folly/Format.h>
 #include <folly/MacAddress.h>
 #include <folly/gen/Base.h>
+#include <folly/lang/CString.h>
 #include <folly/test/TestUtils.h>
 #include <gflags/gflags.h>
 #include <glog/logging.h>

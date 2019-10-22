@@ -6,7 +6,8 @@
  */
 
 #include "fbmeshd/rnl/NetlinkRoute.h"
-#include "fbmeshd/rnl/NetlinkMessage.h"
+
+#include <fbmeshd/rnl/NetlinkMessage.h>
 
 namespace rnl {
 

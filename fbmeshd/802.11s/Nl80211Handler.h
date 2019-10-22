@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <fbmeshd/802.11s/nl80211-copy.h>
+#include "fbmeshd/802.11s/nl80211-copy.h"
 
 #include <netlink/netlink.h> // @manual
 

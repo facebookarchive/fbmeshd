@@ -5,11 +5,11 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+#include "fbmeshd/rnl/NetlinkTypes.h"
+
 #include <set>
 
 #include <glog/logging.h>
-
-#include <fbmeshd/rnl/NetlinkTypes.h>
 
 namespace rnl {
 

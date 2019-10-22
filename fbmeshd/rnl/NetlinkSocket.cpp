@@ -5,7 +5,8 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-#include <fbmeshd/rnl/NetlinkSocket.h>
+#include "fbmeshd/rnl/NetlinkSocket.h"
+
 #include <fbmeshd/if/gen-cpp2/fbmeshd_constants.h>
 
 namespace rnl {

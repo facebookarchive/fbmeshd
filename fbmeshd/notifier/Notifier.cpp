@@ -1,13 +1,13 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
+#include "fbmeshd/notifier/Notifier.h"
+
 #ifdef ENABLE_SYSTEMD_NOTIFY
 #include <systemd/sd-daemon.h> // @manual
 #endif
 
 #include <folly/Format.h>
 #include <glog/logging.h>
-
-#include "fbmeshd/notifier/Notifier.h"
 
 namespace fbmeshd {
 

@@ -12,6 +12,7 @@
 
 #include <folly/FileUtil.h>
 
+#include <fbmeshd/debugfs/DebugFsWriter.h>
 #include <fbmeshd/gateway-connectivity-monitor/Socket.h>
 
 static constexpr folly::StringPiece statPathPrefixTemplate{
@@ -20,8 +21,7 @@ static constexpr folly::StringPiece statPathPrefixTemplate{
 using namespace fbmeshd;
 
 template <typename... Params>
-void
-writeProcFs(
+void writeProcFs(
     folly::StringPiece value,
     const std::string& templateS,
     Params&&... params) {
@@ -68,15 +68,14 @@ GatewayConnectivityMonitor::GatewayConnectivityMonitor(
 
   // Set timer to check routes
   connectivityCheckTimer_ = folly::AsyncTimeout::make(
-      *evb, [this, monitorInterval]() mutable noexcept {
+      *evb, [ this, monitorInterval ]() mutable noexcept {
         checkRoutesAndAdvertise();
         connectivityCheckTimer_->scheduleTimeout(monitorInterval);
       });
   connectivityCheckTimer_->scheduleTimeout(monitorInterval);
 }
 
-bool
-GatewayConnectivityMonitor::probeWanConnectivityRobustly() {
+bool GatewayConnectivityMonitor::probeWanConnectivityRobustly() {
   VLOG(8) << folly::sformat("GatewayConnectivityMonitor::{}()", __func__);
   for (size_t tryNum{0}; tryNum < robustness_; ++tryNum) {
     if (probeWanConnectivity()) {
@@ -86,8 +85,7 @@ GatewayConnectivityMonitor::probeWanConnectivityRobustly() {
   return false;
 }
 
-bool
-GatewayConnectivityMonitor::probeWanConnectivity() {
+bool GatewayConnectivityMonitor::probeWanConnectivity() {
   VLOG(8) << folly::sformat("GatewayConnectivityMonitor::{}()", __func__);
   Socket::Result result;
   bool connectionSucceeded = false;
@@ -118,34 +116,33 @@ GatewayConnectivityMonitor::probeWanConnectivity() {
   return connectionSucceeded;
 }
 
-void
-GatewayConnectivityMonitor::setStat(const std::string& path, int value) {
+void GatewayConnectivityMonitor::setStat(const std::string& path, int value) {
   VLOG(8) << folly::sformat("GatewayConnectivityMonitor::{}()", __func__);
   statsClient_.setAvgStat(folly::sformat(statPathPrefixTemplate, path), value);
 }
 
-void
-GatewayConnectivityMonitor::dampen() {
+void GatewayConnectivityMonitor::dampen() {
   VLOG(8) << folly::sformat("GatewayConnectivityMonitor::{}()", __func__);
   if (isGatewayActive_) {
+    DebugFsWriter::writeDebugStat("is_gateway", "false");
     withdrawDefaultRoute();
   }
 }
 
-void
-GatewayConnectivityMonitor::undampen() {
+void GatewayConnectivityMonitor::undampen() {
   VLOG(8) << folly::sformat("GatewayConnectivityMonitor::{}()", __func__);
   if (isGatewayActive_) {
+    DebugFsWriter::writeDebugStat("is_gateway", "true");
     advertiseDefaultRoute();
   }
 }
 
-void
-GatewayConnectivityMonitor::checkRoutesAndAdvertise() {
+void GatewayConnectivityMonitor::checkRoutesAndAdvertise() {
   VLOG(8) << folly::sformat("GatewayConnectivityMonitor::{}()", __func__);
   if (probeWanConnectivityRobustly()) {
     VLOG(8) << "Successfully probed wan connectivity";
     if (!isDampened()) {
+      DebugFsWriter::writeDebugStat("is_gateway", "true");
       advertiseDefaultRoute();
     } else {
       LOG(INFO) << "Default route dampened, not advertising";
@@ -155,13 +152,13 @@ GatewayConnectivityMonitor::checkRoutesAndAdvertise() {
     }
     isGatewayActive_ = true;
   } else {
+    DebugFsWriter::writeDebugStat("is_gateway", "false");
     withdrawDefaultRoute();
     isGatewayActive_ = false;
   }
 }
 
-void
-GatewayConnectivityMonitor::advertiseDefaultRoute() {
+void GatewayConnectivityMonitor::advertiseDefaultRoute() {
   VLOG(8) << folly::sformat("GatewayConnectivityMonitor::{}()", __func__);
   if (setRootModeIfGate_ != 0) {
     nlHandler_.setRootMode(setRootModeIfGate_);
@@ -171,8 +168,7 @@ GatewayConnectivityMonitor::advertiseDefaultRoute() {
   }
 }
 
-void
-GatewayConnectivityMonitor::withdrawDefaultRoute() {
+void GatewayConnectivityMonitor::withdrawDefaultRoute() {
   VLOG(8) << folly::sformat("GatewayConnectivityMonitor::{}()", __func__);
   if (setRootModeIfGate_ != 0) {
     nlHandler_.setRootMode(0);

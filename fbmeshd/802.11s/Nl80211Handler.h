@@ -16,10 +16,9 @@
 #include <memory>
 #include <vector>
 
+#include <fbzmq/async/ZmqEventLoop.h>
 #include <folly/Optional.h>
 #include <folly/Portability.h>
-#include <folly/io/async/EventBase.h>
-#include <folly/io/async/EventHandler.h>
 
 #include <fbmeshd/802.11s/NetInterface.h>
 #include <fbmeshd/common/ErrorCodes.h>
@@ -64,8 +63,7 @@ class Nl80211HandlerInterface {
 };
 
 // The class to handle communication with the kernel's netlink 80211 system
-class Nl80211Handler final : public Nl80211HandlerInterface,
-                             public folly::EventHandler {
+class Nl80211Handler final : public Nl80211HandlerInterface {
   // This class should never be copied; remove default copy/move
   Nl80211Handler() = delete;
   Nl80211Handler(const Nl80211Handler&) = delete;
@@ -75,7 +73,7 @@ class Nl80211Handler final : public Nl80211HandlerInterface,
 
  public:
   Nl80211Handler(
-      folly::EventBase* evb,
+      fbzmq::ZmqEventLoop& zmqLoop,
       const std::string& interface,
       bool userspace_mesh_peering);
 
@@ -136,11 +134,10 @@ class Nl80211Handler final : public Nl80211HandlerInterface,
       const info_elems& elems);
   void deleteStation(folly::MacAddress peer) override;
   void setStationAuthenticated(
-      const NetInterface& netif,
-      folly::MacAddress peer);
+      const NetInterface& netif, folly::MacAddress peer);
 
-  void
-  setPlinkState(const NetInterface& netif, folly::MacAddress peer, int state);
+  void setPlinkState(
+      const NetInterface& netif, folly::MacAddress peer, int state);
   status_t setMeshConfig(
       const NetInterface& netif,
       const authsae_mesh_node& mesh,
@@ -152,8 +149,6 @@ class Nl80211Handler final : public Nl80211HandlerInterface,
   static std::vector<NetInterface> populateNetifs();
 
  private:
-  void handlerReady(uint16_t events) noexcept override;
-
   // Configuration methods
   void printConfiguration();
   void validateConfiguration();
@@ -170,14 +165,15 @@ class Nl80211Handler final : public Nl80211HandlerInterface,
 
   void processResponse(
       std::function<int(const GenericNetlinkMessage&)>& valid_cb);
-  inline void processResponse(
-      std::function<int(const GenericNetlinkMessage&)>&& valid_cb) {
+  inline void
+  processResponse(std::function<int(const GenericNetlinkMessage&)>&& valid_cb) {
     processResponse(valid_cb);
   }
   static void processResponse(
       std::function<int(const GenericNetlinkMessage&)>& valid_cb,
       const GenericNetlinkSocket&);
-  static inline void processResponse(
+  static inline void
+  processResponse(
       std::function<int(const GenericNetlinkMessage&)>&& valid_cb,
       const GenericNetlinkSocket& sock) {
     processResponse(valid_cb, sock);
@@ -212,7 +208,7 @@ class Nl80211Handler final : public Nl80211HandlerInterface,
   GenericNetlinkSocket nlEventSocket_;
   std::map<uint32_t, NetInterface> netInterfaces_;
   std::map<std::string, uint32_t> multicastGroups_;
-  folly::EventBase* evb_;
+  fbzmq::ZmqEventLoop& zmqLoop_;
   std::unordered_map<folly::MacAddress, int32_t> metrics_;
   bool userspace_mesh_peering_;
 };

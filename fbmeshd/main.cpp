@@ -180,13 +180,10 @@ int main(int argc, char* argv[]) {
   std::unique_ptr<Notifier> notifier =
       std::make_unique<Notifier>(&routingEventLoop, kWatchdogNotifyInterval);
 
-  LOG(INFO) << "Initializing AuthsaeCallbackHelpers...";
-  AuthsaeCallbackHelpers::init(&routingEventLoop);
+  AuthsaeCallbackHelpers::init(evl);
 
-  LOG(INFO) << "Creating Nl80211Handler...";
-  Nl80211Handler nlHandler{&routingEventLoop,
-                           FLAGS_mesh_ifname,
-                           FLAGS_enable_userspace_mesh_peering};
+  Nl80211Handler nlHandler{
+      evl, FLAGS_mesh_ifname, FLAGS_enable_userspace_mesh_peering};
   auto returnValue = nlHandler.joinMeshes();
   if (returnValue != R_SUCCESS) {
     return returnValue;

@@ -13,9 +13,7 @@ extern "C" {
 #include <authsae/sae.h>
 }
 
-#include <folly/container/F14Map.h>
-#include <folly/io/async/EventBase.h>
-#include <folly/io/async/TimeoutManager.h>
+#include <fbzmq/async/ZmqEventLoop.h>
 
 // Creates the function callback tables for AMPE and SAE
 ampe_cb* getAmpeCallbacks();
@@ -35,25 +33,20 @@ class AuthsaeCallbackHelpers final {
 
  public:
   // Initialise the static event loop pointer
-  static void init(folly::EventBase* evb);
+  static void init(fbzmq::ZmqEventLoop& zmqLoop);
 
   // Methods for controlling timeouts
   //
   // NOTE: The public-facing timeout ID returned/accepted by these methods is
   // abstracted from the timeout IDs used internally by the event loop!
-  static int64_t addTimeoutToEventBase(
-      std::chrono::milliseconds interval,
-      timercb proc,
-      void* data);
-  static void removeTimeoutFromEventBase(int64_t timeoutId);
+  static int64_t addTimeoutToEventLoop(
+      std::chrono::milliseconds timeout, fbzmq::TimeoutCallback callback);
+  static void removeTimeoutFromEventLoop(int64_t timeoutId);
 
  private:
   static void verifyInitialized();
 
-  static folly::EventBase* evb_;
-
-  static int timeoutId_;
-  static folly::F14FastMap<int64_t, folly::AsyncTimeout*> timeouts_;
+  static fbzmq::ZmqEventLoop* zmqLoop_;
 };
 
 } // namespace fbmeshd

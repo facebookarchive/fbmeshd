@@ -24,8 +24,15 @@ DEFINE_string(
 
 namespace fbmeshd {
 
+void DebugFsWriter::writeDebugStat(const std::string& key, bool value) {
+  VLOG(8) << folly::sformat("DebugFsWriter::{}(value: {})", __func__, value);
+  if (FLAGS_enable_debugfs) {
+    writeDebugStat(key, folly::sformat("{}", value ? 1 : 0));
+  }
+}
+
 void DebugFsWriter::writeDebugStat(const std::string& key, double value) {
-  VLOG(8) << folly::sformat("DebugFsWriter::{}()", __func__);
+  VLOG(8) << folly::sformat("DebugFsWriter::{}(value: {})", __func__, value);
   if (FLAGS_enable_debugfs) {
     writeDebugStat(key, folly::sformat("{}", value));
   }
@@ -34,7 +41,7 @@ void DebugFsWriter::writeDebugStat(const std::string& key, double value) {
 void DebugFsWriter::writeDebugStat(
     const std::string& key,
     const std::string& value) {
-  VLOG(8) << folly::sformat("DebugFsWriter::{}()", __func__);
+  VLOG(8) << folly::sformat("DebugFsWriter::{}(value: {})", __func__, value);
   if (FLAGS_enable_debugfs) {
     // Make debugfs dir if it doesn't exist (works only if its parent exists)
     mkdir(FLAGS_debugfs_dir.c_str(), 0644);

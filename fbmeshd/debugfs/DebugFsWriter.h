@@ -27,6 +27,7 @@ class DebugFsWriter final {
   DebugFsWriter(DebugFsWriter&&) = delete;
   DebugFsWriter& operator=(DebugFsWriter&&) = delete;
 
+  static void writeDebugStat(const std::string& key, bool value);
   static void writeDebugStat(const std::string& key, double value);
   static void writeDebugStat(const std::string& key, const std::string& value);
 };

@@ -124,7 +124,7 @@ void GatewayConnectivityMonitor::setStat(const std::string& path, int value) {
 void GatewayConnectivityMonitor::dampen() {
   VLOG(8) << folly::sformat("GatewayConnectivityMonitor::{}()", __func__);
   if (isGatewayActive_) {
-    DebugFsWriter::writeDebugStat("is_gateway", "false");
+    DebugFsWriter::writeDebugStat("is_gateway", false);
     withdrawDefaultRoute();
   }
 }
@@ -132,7 +132,7 @@ void GatewayConnectivityMonitor::dampen() {
 void GatewayConnectivityMonitor::undampen() {
   VLOG(8) << folly::sformat("GatewayConnectivityMonitor::{}()", __func__);
   if (isGatewayActive_) {
-    DebugFsWriter::writeDebugStat("is_gateway", "true");
+    DebugFsWriter::writeDebugStat("is_gateway", true);
     advertiseDefaultRoute();
   }
 }
@@ -142,7 +142,7 @@ void GatewayConnectivityMonitor::checkRoutesAndAdvertise() {
   if (probeWanConnectivityRobustly()) {
     VLOG(8) << "Successfully probed wan connectivity";
     if (!isDampened()) {
-      DebugFsWriter::writeDebugStat("is_gateway", "true");
+      DebugFsWriter::writeDebugStat("is_gateway", true);
       advertiseDefaultRoute();
     } else {
       LOG(INFO) << "Default route dampened, not advertising";
@@ -152,7 +152,7 @@ void GatewayConnectivityMonitor::checkRoutesAndAdvertise() {
     }
     isGatewayActive_ = true;
   } else {
-    DebugFsWriter::writeDebugStat("is_gateway", "false");
+    DebugFsWriter::writeDebugStat("is_gateway", false);
     withdrawDefaultRoute();
     isGatewayActive_ = false;
   }

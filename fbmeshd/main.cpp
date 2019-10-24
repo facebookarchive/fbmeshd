@@ -131,7 +131,7 @@ DEFINE_double(
     "Weight of the RSSI based metric (vs. bitrate) in the combined metric");
 
 DEFINE_bool(
-    version,
+    print_version,
     false,
     "Print version of code this fbmeshd executable was built from and exit");
 
@@ -151,7 +151,7 @@ namespace {
 // that are open-sourced. It is used to allow an end user of an fbmeshd
 // executable to identify what code version it was built from.
 // TODO T56294978: Find a way to embed this without having to manually touch it
-constexpr uint32_t kFbmeshdVersion{1};
+constexpr uint32_t kFbmeshdVersion{2};
 
 constexpr folly::StringPiece kHostName{"localhost"};
 
@@ -170,8 +170,11 @@ int main(int argc, char* argv[]) {
   // depends on log output
   setvbuf(stdout, nullptr /*buffer*/, _IOLBF, 0);
 
-  if (FLAGS_version) {
-    LOG(INFO) << folly::sformat("fbmeshd version: {}", kFbmeshdVersion);
+  if (FLAGS_print_version) {
+    // Use std::cout so that we always write to stdout rather than the glog
+    // preference for a logfile
+    std::cout << folly::sformat("fbmeshd version: {}", kFbmeshdVersion)
+              << std::endl;
     return 0;
   }
 

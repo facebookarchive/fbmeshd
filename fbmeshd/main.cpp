@@ -130,6 +130,11 @@ DEFINE_double(
     0.0,
     "Weight of the RSSI based metric (vs. bitrate) in the combined metric");
 
+DEFINE_bool(
+    version,
+    false,
+    "Print version of code this fbmeshd executable was built from and exit");
+
 // TODO: The following flags are deprecated and should not be used.
 //
 // They will be removed in a future version of fbmeshd, at which time using them
@@ -141,13 +146,20 @@ DEFINE_int32(watchdog_threshold_s, 0, "DEPRECATED on 2019-09-16, do not use");
 DEFINE_int32(memory_limit_mb, 0, "DEPRECATED on 2019-09-16, do not use");
 
 namespace {
+
+// NOTE: This must be updated (monotonically increment) with any fbmeshd changes
+// that are open-sourced. It is used to allow an end user of an fbmeshd
+// executable to identify what code version it was built from.
+// TODO T56294978: Find a way to embed this without having to manually touch it
+constexpr uint32_t kFbmeshdVersion{1};
+
 constexpr folly::StringPiece kHostName{"localhost"};
 
-const auto kMetricManagerInterval{3s};
-const auto kMetricManagerHysteresisFactorLog2{2};
-const auto kMetricManagerBaseBitrate{60};
-const auto kPeriodicPingerInterval{10s};
-const auto kWatchdogNotifyInterval{3s};
+constexpr auto kMetricManagerInterval{3s};
+constexpr auto kMetricManagerHysteresisFactorLog2{2};
+constexpr auto kMetricManagerBaseBitrate{60};
+constexpr auto kPeriodicPingerInterval{10s};
+constexpr auto kWatchdogNotifyInterval{3s};
 
 } // namespace
 
@@ -157,6 +169,11 @@ int main(int argc, char* argv[]) {
   // Set stdout to be line-buffered, to assist with integration testing that
   // depends on log output
   setvbuf(stdout, nullptr /*buffer*/, _IOLBF, 0);
+
+  if (FLAGS_version) {
+    LOG(INFO) << folly::sformat("fbmeshd version: {}", kFbmeshdVersion);
+    return 0;
+  }
 
   LOG(INFO) << "Starting fbmesh daemon...";
 

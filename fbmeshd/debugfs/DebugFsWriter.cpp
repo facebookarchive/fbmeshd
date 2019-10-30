@@ -27,7 +27,7 @@ namespace fbmeshd {
 void DebugFsWriter::writeDebugStat(const std::string& key, bool value) {
   VLOG(8) << folly::sformat("DebugFsWriter::{}(value: {})", __func__, value);
   if (FLAGS_enable_debugfs) {
-    writeDebugStat(key, folly::sformat("{}", value ? 1 : 0));
+    writeDebugStat(key, std::string{value ? "true" : "false"});
   }
 }
 

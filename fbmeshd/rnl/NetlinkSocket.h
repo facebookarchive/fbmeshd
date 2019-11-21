@@ -370,13 +370,13 @@ class NetlinkSocket {
 
  private:
   void doHandleRouteEvent(
-      Route route, bool runHandler, bool updateUnicastRoute) noexcept;
+      Route route, bool runHandler, bool updateUnicastRoute);
 
-  void doHandleLinkEvent(Link link, bool runHandler) noexcept;
+  void doHandleLinkEvent(Link link, bool runHandler);
 
-  void doHandleAddrEvent(IfAddress ifAddr, bool runHandler) noexcept;
+  void doHandleAddrEvent(IfAddress ifAddr, bool runHandler);
 
-  void doHandleNeighborEvent(Neighbor neighbor, bool runHandler) noexcept;
+  void doHandleNeighborEvent(Neighbor neighbor, bool runHandler);
 
   void doUpdateRouteCache(Route route, bool updateUnicastRoute = false);
 

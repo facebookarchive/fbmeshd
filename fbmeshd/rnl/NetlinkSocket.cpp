@@ -30,7 +30,12 @@ NetlinkSocket::NetlinkSocket(
                                        link = std::move(link),
 
                                        runHandler = runHandler]() mutable {
-      doHandleLinkEvent(link, runHandler);
+      try {
+        doHandleLinkEvent(link, runHandler);
+      } catch (std::exception const& err) {
+       LOG(ERROR) << "error processing NL link callback: "
+                  << folly::exceptionStr(err);
+      }
     });
   });
 
@@ -40,7 +45,12 @@ NetlinkSocket::NetlinkSocket(
                                        ifAddr = std::move(ifAddr),
 
                                        runHandler = runHandler]() mutable {
-      doHandleAddrEvent(ifAddr, runHandler);
+      try {
+        doHandleAddrEvent(ifAddr, runHandler);
+      } catch (std::exception const& err) {
+       LOG(ERROR) << "error processing NL addr callback: "
+                  << folly::exceptionStr(err);
+      }
     });
   });
 
@@ -50,7 +60,12 @@ NetlinkSocket::NetlinkSocket(
                                        neigh = std::move(neigh),
 
                                        runHandler = runHandler]() mutable {
-      doHandleNeighborEvent(neigh, runHandler);
+      try {
+        doHandleNeighborEvent(neigh, runHandler);
+      } catch (std::exception const& err) {
+        LOG(ERROR) << "error processing NL neighbor callback: "
+                   << folly::exceptionStr(err);
+      }
     });
   });
 
@@ -65,7 +80,7 @@ NetlinkSocket::~NetlinkSocket() {
 
 void
 NetlinkSocket::doHandleRouteEvent(
-    Route route, bool runHandler, bool updateUnicastRoute) noexcept {
+    Route route, bool runHandler, bool updateUnicastRoute) {
   auto routeCopy = Route(route);
   try {
     doUpdateRouteCache(std::move(route), updateUnicastRoute);
@@ -86,7 +101,7 @@ NetlinkSocket::doHandleRouteEvent(
 }
 
 void
-NetlinkSocket::doHandleLinkEvent(Link link, bool runHandler) noexcept {
+NetlinkSocket::doHandleLinkEvent(Link link, bool runHandler) {
   const auto linkName = link.getLinkName();
   auto& linkAttr = links_[linkName];
   linkAttr.isUp = link.isUp();
@@ -115,7 +130,7 @@ NetlinkSocket::removeNeighborCacheEntries(const std::string& ifName) {
 }
 
 void
-NetlinkSocket::doHandleAddrEvent(IfAddress ifAddr, bool runHandler) noexcept {
+NetlinkSocket::doHandleAddrEvent(IfAddress ifAddr, bool runHandler) {
   std::string ifName = getIfName(ifAddr.getIfIndex()).get();
   if (ifAddr.isValid()) {
     if (links_[ifName].networks.count(ifAddr.getPrefix().value()) == 0) {
@@ -136,7 +151,7 @@ NetlinkSocket::doHandleAddrEvent(IfAddress ifAddr, bool runHandler) noexcept {
 
 void
 NetlinkSocket::doHandleNeighborEvent(
-    Neighbor neighbor, bool runHandler) noexcept {
+    Neighbor neighbor, bool runHandler) {
   std::string ifName = getIfName(neighbor.getIfIndex()).get();
   auto key = std::make_pair(ifName, neighbor.getDestination());
   neighbors_.erase(key);

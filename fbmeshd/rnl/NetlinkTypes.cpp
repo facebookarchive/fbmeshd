@@ -88,8 +88,8 @@ RouteBuilder::loadFromObject(struct rtnl_route* obj) {
 
 Route
 RouteBuilder::buildMulticastRoute() const {
-  if (!routeIfIndex_.hasValue() || routeIfIndex_.value() == 0 ||
-      !routeIfName_.hasValue()) {
+  if (!routeIfIndex_.has_value() || routeIfIndex_.value() == 0 ||
+      !routeIfName_.has_value()) {
     throw rnl::NlException("Iface index and Iface name must be set");
   }
   NextHopBuilder nhBuilder;
@@ -107,8 +107,8 @@ RouteBuilder::buildMulticastRoute() const {
 
 Route
 RouteBuilder::buildLinkRoute() const {
-  if (!routeIfIndex_.hasValue() || routeIfIndex_.value() == 0 ||
-      !routeIfName_.hasValue()) {
+  if (!routeIfIndex_.has_value() || routeIfIndex_.value() == 0 ||
+      !routeIfName_.has_value()) {
     throw rnl::NlException("Iface index and Iface name must be set");
   }
   NextHopBuilder nhBuilder;
@@ -536,7 +536,7 @@ std::string
 Route::str() const {
   std::string result;
   if (family_ == AF_MPLS) {
-    if (mplsLabel_.hasValue()) {
+    if (mplsLabel_.has_value()) {
       result += folly::sformat("label {} ", mplsLabel_.value());
     }
   } else {
@@ -544,7 +544,7 @@ Route::str() const {
         folly::sformat("route {} ", folly::IPAddress::networkToString(dst_));
   }
   uint32_t flags = 0;
-  if (flags_.hasValue()) {
+  if (flags_.has_value()) {
     flags = flags_.value();
   }
   result += folly::sformat(
@@ -621,23 +621,23 @@ Route::getRtnlRouteRef() {
     route_ = nullptr;
   };
 
-  if (priority_.hasValue()) {
+  if (priority_.has_value()) {
     rtnl_route_set_priority(route_, priority_.value());
   }
 
-  if (flags_.hasValue()) {
+  if (flags_.has_value()) {
     rtnl_route_set_flags(route_, flags_.value());
   }
 
-  if (tos_.hasValue()) {
+  if (tos_.has_value()) {
     rtnl_route_set_tos(route_, tos_.value());
   }
 
-  if (mtu_.hasValue()) {
+  if (mtu_.has_value()) {
     rtnl_route_set_metric(route_, RTAX_MTU, mtu_.value());
   }
 
-  if (advMss_.hasValue()) {
+  if (advMss_.has_value()) {
     rtnl_route_set_metric(route_, RTAX_ADVMSS, advMss_.value());
   }
 
@@ -645,7 +645,8 @@ Route::getRtnlRouteRef() {
   // 1. check dst and nexthop's family
   for (const auto& nextHop : nextHops_) {
     auto gateway = nextHop.getGateway();
-    if (gateway.hasValue() && gateway.value().family() != dst_.first.family()) {
+    if (gateway.has_value() &&
+        gateway.value().family() != dst_.first.family()) {
       throw rnl::NlException(
           "Different address family for destination and Nexthop gateway");
     }
@@ -789,7 +790,7 @@ NextHopBuilder::getPushLabels() const {
 
 uint8_t
 NextHopBuilder::getFamily() const {
-  if (gateway_.hasValue()) {
+  if (gateway_.has_value()) {
     return gateway_.value().family();
   }
   return AF_UNSPEC;
@@ -818,10 +819,10 @@ operator==(const NextHop& lhs, const NextHop& rhs) {
 size_t
 NextHopHash::operator()(const NextHop& nh) const {
   size_t res = 0;
-  if (nh.getIfIndex().hasValue()) {
+  if (nh.getIfIndex().has_value()) {
     res += std::hash<std::string>()(std::to_string(nh.getIfIndex().value()));
   }
-  if (nh.getGateway().hasValue()) {
+  if (nh.getGateway().has_value()) {
     res += std::hash<std::string>()(nh.getGateway().value().str());
   }
   res += std::hash<std::string>()(std::to_string(nh.getWeight()));
@@ -860,7 +861,7 @@ NextHop::getPushLabels() const {
 
 uint8_t
 NextHop::getFamily() const {
-  if (gateway_.hasValue()) {
+  if (gateway_.has_value()) {
     return gateway_.value().family();
   }
   return AF_UNSPEC;
@@ -874,15 +875,15 @@ NextHop::str() const {
       (gateway_ ? gateway_->str() : "n/a"),
       (ifIndex_ ? std::to_string(*ifIndex_) : "n/a"),
       std::to_string(weight_));
-  if (labelAction_.hasValue()) {
+  if (labelAction_.has_value()) {
     result += folly::sformat(
         " Label action {}",
         apache::thrift::util::enumNameSafe(labelAction_.value()));
   }
-  if (swapLabel_.hasValue()) {
+  if (swapLabel_.has_value()) {
     result += folly::sformat(" Swap label {}", swapLabel_.value());
   }
-  if (pushLabels_.hasValue()) {
+  if (pushLabels_.has_value()) {
     result += " Push Labels: ";
     for (const auto& label : pushLabels_.value()) {
       result += folly::sformat(" {} ", label);
@@ -893,11 +894,11 @@ NextHop::str() const {
 
 struct rtnl_nexthop*
 NextHop::getRtnlNexthopObj() const {
-  if (ifIndex_.hasValue() && gateway_.hasValue()) {
+  if (ifIndex_.has_value() && gateway_.has_value()) {
     return buildNextHopInternal(ifIndex_.value(), gateway_.value());
-  } else if (ifIndex_.hasValue()) {
+  } else if (ifIndex_.has_value()) {
     return buildNextHopInternal(ifIndex_.value());
-  } else if (gateway_.hasValue()) {
+  } else if (gateway_.has_value()) {
     return buildNextHopInternal(gateway_.value());
   }
   throw NlException("Invalid nexthop");
@@ -1162,7 +1163,7 @@ IfAddress::operator=(const IfAddress& other) {
 
 uint8_t
 IfAddress::getFamily() const {
-  if (prefix_.hasValue()) {
+  if (prefix_.has_value()) {
     return prefix_->first.family();
   } else {
     return family_.value();
@@ -1171,7 +1172,7 @@ IfAddress::getFamily() const {
 
 uint8_t
 IfAddress::getPrefixLen() const {
-  if (prefix_.hasValue()) {
+  if (prefix_.has_value()) {
     return prefix_->second;
   }
   return 0;
@@ -1207,7 +1208,7 @@ IfAddress::str() const {
   return folly::sformat(
       "addr {} {} intf-index {}, valid {}",
       getFamily() == AF_INET ? "inet" : "inet6",
-      prefix_.hasValue() ? folly::IPAddress::networkToString(*prefix_) : "n/a",
+      prefix_.has_value() ? folly::IPAddress::networkToString(*prefix_) : "n/a",
       ifIndex_,
       isValid_ ? "Yes" : "No");
 }
@@ -1231,7 +1232,7 @@ IfAddress::getRtnlAddrRef() {
   rtnl_addr_set_ifindex(ifAddr_, ifIndex_);
 
   // Get local addr
-  if (prefix_.hasValue()) {
+  if (prefix_.has_value()) {
     struct nl_addr* localAddr = nl_addr_build(
         prefix_->first.family(),
         (void*)(prefix_->first.bytes()),
@@ -1248,13 +1249,13 @@ IfAddress::getRtnlAddrRef() {
     nl_addr_put(localAddr);
   }
 
-  if (family_.hasValue()) {
+  if (family_.has_value()) {
     rtnl_addr_set_family(ifAddr_, family_.value());
   }
-  if (scope_.hasValue()) {
+  if (scope_.has_value()) {
     rtnl_addr_set_scope(ifAddr_, scope_.value());
   }
-  if (flags_.hasValue()) {
+  if (flags_.has_value()) {
     rtnl_addr_set_flags(ifAddr_, flags_.value());
   }
 
@@ -1477,7 +1478,7 @@ Neighbor::isReachable() const {
 std::string
 Neighbor::str() const {
   std::string stateStr{"n/a"};
-  if (state_.hasValue()) {
+  if (state_.has_value()) {
     std::array<char, 32> buf{""};
     rtnl_neigh_state2str(state_.value(), buf.data(), buf.size() - 1);
     stateStr = std::string(buf.data());
@@ -1488,7 +1489,7 @@ Neighbor::str() const {
       destination_.str(),
       isReachable_ ? "Yes" : "No",
       ifIndex_,
-      linkAddress_.hasValue() ? linkAddress_->toString() : "n/a",
+      linkAddress_.has_value() ? linkAddress_->toString() : "n/a",
       stateStr);
 }
 
@@ -1507,7 +1508,7 @@ Neighbor::getRtnlNeighRef() {
   };
 
   rtnl_neigh_set_ifindex(neigh_, ifIndex_);
-  if (state_.hasValue()) {
+  if (state_.has_value()) {
     rtnl_neigh_set_state(neigh_, state_.value());
   }
 
@@ -1523,7 +1524,7 @@ Neighbor::getRtnlNeighRef() {
   };
   rtnl_neigh_set_dst(neigh_, dst);
 
-  if (linkAddress_.hasValue()) {
+  if (linkAddress_.has_value()) {
     struct nl_addr* llAddr = nl_addr_build(
         AF_UNSPEC,
         (void*)linkAddress_.value().bytes(),

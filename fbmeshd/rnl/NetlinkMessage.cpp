@@ -322,7 +322,7 @@ NetlinkProtocolSocket::processMessage(
       auto addrMessage = std::make_unique<NetlinkAddrMessage>();
       rnl::IfAddress addr = addrMessage->parseMessage(nlh);
 
-      if (!addr.getPrefix().hasValue()) {
+      if (!addr.getPrefix().has_value()) {
         break;
       }
       if (nlSeqNoMap_.count(nlh->nlmsg_seq) > 0) {

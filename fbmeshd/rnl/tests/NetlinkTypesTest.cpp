@@ -31,9 +31,9 @@ TEST(NetlinkTypes, NextHopIfIndexTest) {
   // Create NextHop with ifindex
   NextHopBuilder builder;
   auto nh = builder.setIfIndex(kIfIndex).build();
-  EXPECT_TRUE(nh.getIfIndex().hasValue());
+  EXPECT_TRUE(nh.getIfIndex().has_value());
   EXPECT_EQ(kIfIndex, nh.getIfIndex().value());
-  EXPECT_FALSE(nh.getGateway().hasValue());
+  EXPECT_FALSE(nh.getGateway().has_value());
   EXPECT_EQ(0, nh.getWeight());
   struct rtnl_nexthop* object = nh.getRtnlNexthopObj();
   EXPECT_TRUE(object != nullptr);
@@ -61,8 +61,8 @@ TEST(NetlinkTypes, NextHopGatewayTest) {
   folly::IPAddress gateway("fc00:cafe:3::3");
   NextHopBuilder builder;
   auto nh = builder.setGateway(gateway).setWeight(kWeight).build();
-  EXPECT_FALSE(nh.getIfIndex().hasValue());
-  EXPECT_TRUE(nh.getGateway().hasValue());
+  EXPECT_FALSE(nh.getIfIndex().has_value());
+  EXPECT_TRUE(nh.getGateway().has_value());
   EXPECT_EQ(gateway, nh.getGateway().value());
   EXPECT_EQ(kWeight, nh.getWeight());
 
@@ -93,9 +93,9 @@ TEST(NetlinkTypes, NexthopGeneralTest) {
   LOG(INFO) << nh.str();
 
   // Create nextHop with ifIndex and gateway
-  EXPECT_TRUE(nh.getIfIndex().hasValue());
+  EXPECT_TRUE(nh.getIfIndex().has_value());
   EXPECT_EQ(kIfIndex, nh.getIfIndex().value());
-  EXPECT_TRUE(nh.getGateway().hasValue());
+  EXPECT_TRUE(nh.getGateway().has_value());
   EXPECT_EQ(gateway, nh.getGateway().value());
   EXPECT_EQ(kWeight, nh.getWeight());
 
@@ -127,12 +127,12 @@ TEST(NetlinkTypes, RouteBaseTest) {
   EXPECT_EQ(RT_TABLE_MAIN, route.getRouteTable());
   EXPECT_EQ(dst, route.getDestination());
   EXPECT_EQ(RTN_UNICAST, route.getType());
-  EXPECT_FALSE(route.getFlags().hasValue());
+  EXPECT_FALSE(route.getFlags().has_value());
   EXPECT_TRUE(route.getNextHops().empty());
-  EXPECT_FALSE(route.getPriority().hasValue());
-  EXPECT_FALSE(route.getTos().hasValue());
-  EXPECT_FALSE(route.getMtu().hasValue());
-  EXPECT_FALSE(route.getAdvMss().hasValue());
+  EXPECT_FALSE(route.getPriority().has_value());
+  EXPECT_FALSE(route.getTos().has_value());
+  EXPECT_FALSE(route.getMtu().has_value());
+  EXPECT_FALSE(route.getAdvMss().has_value());
 
   struct rtnl_route* object = route.getRtnlRouteRef();
   struct rtnl_route* objectKey = route.getRtnlRouteKeyRef();
@@ -312,26 +312,26 @@ TEST(NetlinkTypes, RouteMoveTest) {
   EXPECT_EQ(dst, route1.getDestination());
   EXPECT_EQ(RTN_UNICAST, route1.getType());
   EXPECT_EQ(RTN_UNICAST, rtnl_route_get_type(p1));
-  EXPECT_TRUE(route1.getFlags().hasValue());
+  EXPECT_TRUE(route1.getFlags().has_value());
   EXPECT_EQ(flags, route1.getFlags().value());
   EXPECT_EQ(flags, rtnl_route_get_flags(p1));
-  EXPECT_TRUE(route1.getPriority().hasValue());
+  EXPECT_TRUE(route1.getPriority().has_value());
   EXPECT_EQ(priority, route1.getPriority().value());
   EXPECT_EQ(priority, rtnl_route_get_priority(p1));
-  EXPECT_TRUE(route1.getTos().hasValue());
+  EXPECT_TRUE(route1.getTos().has_value());
   EXPECT_EQ(tos, route1.getTos().value());
   EXPECT_EQ(tos, rtnl_route_get_tos(p1));
-  EXPECT_TRUE(route1.getMtu().hasValue());
+  EXPECT_TRUE(route1.getMtu().has_value());
   EXPECT_EQ(mtu, route1.getMtu().value());
   uint32_t val;
   rtnl_route_get_metric(p1, RTAX_MTU, &val);
   EXPECT_EQ(mtu, val);
-  EXPECT_TRUE(route1.getAdvMss().hasValue());
+  EXPECT_TRUE(route1.getAdvMss().has_value());
   EXPECT_EQ(advMss, route1.getAdvMss().value());
   rtnl_route_get_metric(p1, RTAX_ADVMSS, &val);
   EXPECT_EQ(advMss, val);
   EXPECT_EQ(1, route1.getNextHops().size());
-  EXPECT_TRUE(route1.getNextHops().begin()->getGateway().hasValue());
+  EXPECT_TRUE(route1.getNextHops().begin()->getGateway().has_value());
   EXPECT_EQ(gateway, route1.getNextHops().begin()->getGateway().value());
 
   Route route2 = std::move(route1);
@@ -352,20 +352,20 @@ TEST(NetlinkTypes, RouteMoveTest) {
   EXPECT_EQ(dst, route2.getDestination());
   EXPECT_EQ(RTN_UNICAST, route2.getType());
   EXPECT_EQ(RTN_UNICAST, rtnl_route_get_type(p2));
-  EXPECT_TRUE(route2.getFlags().hasValue());
+  EXPECT_TRUE(route2.getFlags().has_value());
   EXPECT_EQ(flags, route2.getFlags().value());
   EXPECT_EQ(flags, rtnl_route_get_flags(p2));
-  EXPECT_TRUE(route2.getPriority().hasValue());
+  EXPECT_TRUE(route2.getPriority().has_value());
   EXPECT_EQ(priority, route2.getPriority().value());
   EXPECT_EQ(priority, rtnl_route_get_priority(p2));
-  EXPECT_TRUE(route2.getTos().hasValue());
+  EXPECT_TRUE(route2.getTos().has_value());
   EXPECT_EQ(tos, route2.getTos().value());
   EXPECT_EQ(tos, rtnl_route_get_tos(p2));
-  EXPECT_TRUE(route2.getMtu().hasValue());
+  EXPECT_TRUE(route2.getMtu().has_value());
   EXPECT_EQ(mtu, route2.getMtu().value());
   rtnl_route_get_metric(p2, RTAX_MTU, &val);
   EXPECT_EQ(mtu, val);
-  EXPECT_TRUE(route2.getAdvMss().hasValue());
+  EXPECT_TRUE(route2.getAdvMss().has_value());
   EXPECT_EQ(advMss, route2.getAdvMss().value());
   rtnl_route_get_metric(p2, RTAX_ADVMSS, &val);
   EXPECT_EQ(advMss, val);
@@ -470,15 +470,15 @@ TEST(NetlinkTypes, RouteOptionalParamTest) {
   EXPECT_EQ(RT_TABLE_MAIN, route.getRouteTable());
   EXPECT_EQ(dst, route.getDestination());
   EXPECT_EQ(RTN_UNICAST, route.getType());
-  EXPECT_TRUE(route.getFlags().hasValue());
+  EXPECT_TRUE(route.getFlags().has_value());
   EXPECT_EQ(flags, route.getFlags().value());
-  EXPECT_TRUE(route.getPriority().hasValue());
+  EXPECT_TRUE(route.getPriority().has_value());
   EXPECT_EQ(priority, route.getPriority().value());
-  EXPECT_TRUE(route.getTos().hasValue());
+  EXPECT_TRUE(route.getTos().has_value());
   EXPECT_EQ(tos, route.getTos().value());
-  EXPECT_TRUE(route.getMtu().hasValue());
+  EXPECT_TRUE(route.getMtu().has_value());
   EXPECT_EQ(mtu, route.getMtu().value());
-  EXPECT_TRUE(route.getAdvMss().hasValue());
+  EXPECT_TRUE(route.getAdvMss().has_value());
   EXPECT_EQ(advMss, route.getAdvMss().value());
   EXPECT_EQ(3, route.getNextHops().size());
 
@@ -545,9 +545,9 @@ TEST(NetlinkTypes, IfAddressMoveTest) {
   EXPECT_EQ(prefix.second, rtnl_addr_get_prefixlen(p1));
   EXPECT_EQ(prefix.second, ifAddr1.getPrefixLen());
   EXPECT_EQ(RT_SCOPE_NOWHERE, rtnl_addr_get_scope(p1));
-  EXPECT_FALSE(ifAddr1.getScope().hasValue());
+  EXPECT_FALSE(ifAddr1.getScope().has_value());
   EXPECT_EQ(flags, rtnl_addr_get_flags(p1));
-  EXPECT_TRUE(ifAddr1.getFlags().hasValue());
+  EXPECT_TRUE(ifAddr1.getFlags().has_value());
   EXPECT_EQ(flags, ifAddr1.getFlags().value());
   EXPECT_EQ(kIfIndex, rtnl_addr_get_ifindex(p1));
   EXPECT_EQ(kIfIndex, ifAddr1.getIfIndex());
@@ -561,9 +561,9 @@ TEST(NetlinkTypes, IfAddressMoveTest) {
   EXPECT_EQ(prefix.second, rtnl_addr_get_prefixlen(p2));
   EXPECT_EQ(prefix.second, ifAddr2.getPrefixLen());
   EXPECT_EQ(RT_SCOPE_NOWHERE, rtnl_addr_get_scope(p2));
-  EXPECT_FALSE(ifAddr2.getScope().hasValue());
+  EXPECT_FALSE(ifAddr2.getScope().has_value());
   EXPECT_EQ(flags, rtnl_addr_get_flags(p2));
-  EXPECT_TRUE(ifAddr2.getFlags().hasValue());
+  EXPECT_TRUE(ifAddr2.getFlags().has_value());
   EXPECT_EQ(flags, ifAddr2.getFlags().value());
   EXPECT_EQ(kIfIndex, rtnl_addr_get_ifindex(p2));
   EXPECT_EQ(kIfIndex, ifAddr2.getIfIndex());
@@ -619,9 +619,9 @@ TEST(NetlinkTypes, IfAddressTest) {
   EXPECT_EQ(prefix.second, rtnl_addr_get_prefixlen(addr));
   EXPECT_EQ(prefix.second, ifAddr.getPrefixLen());
   EXPECT_EQ(RT_SCOPE_NOWHERE, rtnl_addr_get_scope(addr));
-  EXPECT_FALSE(ifAddr.getScope().hasValue());
+  EXPECT_FALSE(ifAddr.getScope().has_value());
   EXPECT_EQ(flags, rtnl_addr_get_flags(addr));
-  EXPECT_TRUE(ifAddr.getFlags().hasValue());
+  EXPECT_TRUE(ifAddr.getFlags().has_value());
   EXPECT_EQ(flags, ifAddr.getFlags().value());
   EXPECT_EQ(kIfIndex, rtnl_addr_get_ifindex(addr));
   EXPECT_EQ(kIfIndex, ifAddr.getIfIndex());
@@ -642,10 +642,10 @@ TEST(NetlinkTypes, IfAddressTest) {
   EXPECT_EQ(prefixV4.second, rtnl_addr_get_prefixlen(addr));
   EXPECT_EQ(prefixV4.second, ifAddr1.getPrefixLen());
   EXPECT_EQ(rtnl_str2scope("site"), rtnl_addr_get_scope(addr));
-  EXPECT_TRUE(ifAddr1.getScope().hasValue());
+  EXPECT_TRUE(ifAddr1.getScope().has_value());
   EXPECT_EQ(rtnl_str2scope("site"), ifAddr1.getScope().value());
   EXPECT_EQ(flags, rtnl_addr_get_flags(addr));
-  EXPECT_TRUE(ifAddr1.getFlags().hasValue());
+  EXPECT_TRUE(ifAddr1.getFlags().has_value());
   EXPECT_EQ(flags, ifAddr1.getFlags().value());
   EXPECT_EQ(kIfIndex, rtnl_addr_get_ifindex(addr));
   EXPECT_EQ(kIfIndex, ifAddr1.getIfIndex());
@@ -668,9 +668,9 @@ TEST(NetlinkTypes, IfAddressMiscTest) {
   EXPECT_EQ(prefix.second, rtnl_addr_get_prefixlen(addr));
   EXPECT_EQ(prefix.second, ifAddr.getPrefixLen());
   EXPECT_EQ(RT_SCOPE_NOWHERE, rtnl_addr_get_scope(addr));
-  EXPECT_FALSE(ifAddr.getScope().hasValue());
+  EXPECT_FALSE(ifAddr.getScope().has_value());
   EXPECT_EQ(flags, rtnl_addr_get_flags(addr));
-  EXPECT_TRUE(ifAddr.getFlags().hasValue());
+  EXPECT_TRUE(ifAddr.getFlags().has_value());
   EXPECT_EQ(flags, ifAddr.getFlags().value());
   EXPECT_EQ(kIfIndex, rtnl_addr_get_ifindex(addr));
   EXPECT_EQ(kIfIndex, ifAddr.getIfIndex());

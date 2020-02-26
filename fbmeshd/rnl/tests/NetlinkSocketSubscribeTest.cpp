@@ -88,7 +88,7 @@ bool
 CompareNextHops(std::vector<folly::IPAddress>& nexthops, const Route& route) {
   std::vector<folly::IPAddress> actual;
   for (const auto& nh : route.getNextHops()) {
-    if (!nh.getGateway().hasValue()) {
+    if (!nh.getGateway().has_value()) {
       return false;
     }
     actual.push_back(nh.getGateway().value());
@@ -228,13 +228,13 @@ class MyNetlinkHandler final : public NetlinkSocket::EventsHandler {
       const rnl::Neighbor& neighborEntry) noexcept override {
     std::string ifName =
         netlinkSocket->getIfName(neighborEntry.getIfIndex()).get();
-    VLOG(8)
-        << "** Neighbor entry: " << ifName << " : "
-        << neighborEntry.getDestination().str() << " -> "
-        << (neighborEntry.getLinkAddress().hasValue()
-                ? neighborEntry.getLinkAddress().value().toString()
-                : "n/a")
-        << (neighborEntry.isReachable() ? " : Reachable" : " : Unreachable");
+    VLOG(8) << "** Neighbor entry: " << ifName << " : "
+            << neighborEntry.getDestination().str() << " -> "
+            << (neighborEntry.getLinkAddress().has_value()
+                    ? neighborEntry.getLinkAddress().value().toString()
+                    : "n/a")
+            << (neighborEntry.isReachable() ? " : Reachable"
+                                            : " : Unreachable");
 
     // Ignore entries on unknown interfaces
     if (ifName.find(ifNamePrefix) == std::string::npos) {

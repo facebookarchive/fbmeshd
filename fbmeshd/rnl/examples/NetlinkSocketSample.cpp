@@ -115,7 +115,7 @@ class MyNetlinkHandler final : public NetlinkSocket::EventsHandler {
               << folly::IPAddress::networkToString(routeEntry.getDestination());
 
     for (const auto& nh : routeEntry.getNextHops()) {
-      if (!nh.getGateway().hasValue() || !nh.getIfIndex().hasValue()) {
+      if (!nh.getGateway().has_value() || !nh.getIfIndex().has_value()) {
         continue;
       }
       VLOG(8) << "NextHop: " << nh.getGateway().value().str()

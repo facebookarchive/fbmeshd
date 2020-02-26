@@ -592,7 +592,7 @@ Nl80211Handler::leaveMesh(int phyIndex) {
   VLOG(8) << folly::sformat("Nl80211Handler::{}(phy: {})", __func__, phyIndex);
 
   const NetInterface& netif = lookupNetifFromPhy(phyIndex);
-  CHECK(netif.maybeIfIndex.hasValue());
+  CHECK(netif.maybeIfIndex.has_value());
 
   GenericNetlinkMessage msg{GenericNetlinkFamily::NL80211(),
                             NL80211_CMD_LEAVE_MESH};
@@ -721,7 +721,7 @@ Nl80211Handler::joinMesh(int phyIndex) {
   VLOG(8) << folly::sformat("Nl80211Handler::{}(phy: {})", __func__, phyIndex);
 
   const NetInterface& netif = lookupNetifFromPhy(phyIndex);
-  CHECK(netif.maybeIfIndex.hasValue());
+  CHECK(netif.maybeIfIndex.has_value());
 
   GenericNetlinkMessage msg{GenericNetlinkFamily::NL80211(),
                             NL80211_CMD_JOIN_MESH};
@@ -858,7 +858,7 @@ Nl80211Handler::registerForAuthFrames(const NetInterface& netif) {
   VLOG(8) << folly::sformat(
       "Nl80211Handler::{}(phy: {})", __func__, netif.phyIndex());
 
-  CHECK(netif.maybeIfIndex.hasValue());
+  CHECK(netif.maybeIfIndex.has_value());
 
   const uint16_t IEEE80211_FTYPE_MGMT = 0x0000;
   const uint16_t IEEE80211_STYPE_AUTH = 0x00B0;
@@ -886,7 +886,7 @@ Nl80211Handler::registerForMeshPeeringFrames(const NetInterface& netif) {
   VLOG(8) << folly::sformat(
       "Nl80211Handler::{}(phy: {})", __func__, netif.phyIndex());
 
-  CHECK(netif.maybeIfIndex.hasValue());
+  CHECK(netif.maybeIfIndex.has_value());
 
   const uint16_t IEEE80211_FTYPE_MGMT = 0x0000;
   const uint16_t IEEE80211_STYPE_ACTION = 0x00D0;
@@ -933,7 +933,7 @@ Nl80211Handler::installKey(
       keyType,
       keyIdx);
 
-  CHECK(netif.maybeIfIndex.hasValue());
+  CHECK(netif.maybeIfIndex.has_value());
 
   // Trying to install a pairwise key without a peer doesn't make sense
   if (keyType == NL80211_KEYTYPE_PAIRWISE) {
@@ -1110,7 +1110,7 @@ Nl80211Handler::setPlinkState(
       peer.toString(),
       state);
 
-  CHECK(netif.maybeIfIndex.hasValue());
+  CHECK(netif.maybeIfIndex.has_value());
   CHECK_GE(state, 0);
   CHECK_LT(state, NUM_NL80211_PLINK_STATES);
 
@@ -1150,7 +1150,7 @@ Nl80211Handler::setStationAuthenticated(
       netif.phyIndex(),
       peer.toString());
 
-  CHECK(netif.maybeIfIndex.hasValue());
+  CHECK(netif.maybeIfIndex.has_value());
 
   GenericNetlinkMessage msg{GenericNetlinkFamily::NL80211(),
                             NL80211_CMD_SET_STATION};
@@ -1179,7 +1179,7 @@ Nl80211Handler::setMeshConfig(
   VLOG(8) << folly::sformat(
       "Nl80211Handler::{}(phy: {})", __func__, netif.phyIndex());
 
-  CHECK(netif.maybeIfIndex.hasValue());
+  CHECK(netif.maybeIfIndex.has_value());
 
   GenericNetlinkMessage msg{GenericNetlinkFamily::NL80211(),
                             NL80211_CMD_SET_MESH_CONFIG};
@@ -1553,7 +1553,7 @@ Nl80211Handler::createUnauthenticatedStation(
       netif.phyIndex(),
       peer.toString());
 
-  CHECK(netif.maybeIfIndex.hasValue());
+  CHECK(netif.maybeIfIndex.has_value());
 
   uint16_t peerAid =
       find_peer(

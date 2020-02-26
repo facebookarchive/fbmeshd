@@ -27,7 +27,7 @@ GenericNetlinkFamily::GenericNetlinkFamily(std::string family)
     : family_{family} {}
 
 GenericNetlinkFamily::operator int() const {
-  if (!familyId_.hasValue()) {
+  if (!familyId_.has_value()) {
     familyId_ = GenericNetlinkSocket{}.resolveGenericNetlinkFamily(family_);
   }
   return *familyId_;

@@ -469,9 +469,9 @@ NetlinkProtocolSocket::getReturnStatus(
   }
 
   // Collect request status(es) from the request message futures
-  auto all = collectAll(futures.begin(), futures.end());
+  auto all = collectAllSemiFuture(futures.begin(), futures.end());
   // Wait for Netlink Ack (which sets the promise value)
-  if (all.wait(timeout).isReady()) {
+  if (std::move(all).wait(timeout)) {
     // Collect statuses from individual futures
     for (const auto& future : futures) {
       if (std::abs(future.value()) != 0 &&

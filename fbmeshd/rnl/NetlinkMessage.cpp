@@ -16,6 +16,10 @@
 #include <fbmeshd/rnl/NetlinkRoute.h>
 #include <fbmeshd/rnl/NetlinkSocket.h>
 
+#ifdef FOLLY_COLLECT_IS_SEMI
+#define collectAllSemiFuture collectAll
+#endif
+
 namespace rnl {
 
 uint32_t gSequenceNumber{0};
@@ -469,7 +473,7 @@ NetlinkProtocolSocket::getReturnStatus(
   }
 
   // Collect request status(es) from the request message futures
-  auto all = collectAll(futures.begin(), futures.end());
+  auto all = collectAllSemiFuture(futures.begin(), futures.end());
   // Wait for Netlink Ack (which sets the promise value)
   if (std::move(all).wait(timeout)) {
     // Collect statuses from individual futures

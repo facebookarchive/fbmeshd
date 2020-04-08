@@ -1639,9 +1639,11 @@ Nl80211Handler::getMesh() {
           LOG(INFO) << "tx power info missing";
           return NL_SKIP;
         }
-
+#ifdef USE_THRIFT_FIELD_REF_API
+        mesh.txPower_ref() = nla_get_u32(tb[NL80211_ATTR_WIPHY_TX_POWER_LEVEL]);
+#else
         mesh.txPower = nla_get_u32(tb[NL80211_ATTR_WIPHY_TX_POWER_LEVEL]);
-
+#endif
         if (!tb[NL80211_ATTR_CENTER_FREQ1]) {
           LOG(INFO) << "center_freq_1 info missing";
           return NL_SKIP;
@@ -1652,7 +1654,11 @@ Nl80211Handler::getMesh() {
         if (!tb[NL80211_ATTR_CENTER_FREQ2]) {
           LOG(INFO) << "center_freq_2 info missing";
         } else {
+#ifdef USE_THRIFT_FIELD_REF_API
+          mesh.centerFreq2_ref() = nla_get_u32(tb[NL80211_ATTR_CENTER_FREQ2]);
+#else
           mesh.centerFreq2 = nla_get_u32(tb[NL80211_ATTR_CENTER_FREQ2]);
+#endif
         }
 
         if (!tb[NL80211_ATTR_CHANNEL_WIDTH]) {

@@ -224,13 +224,14 @@ Routing::hwmpPannFrameProcess(
     folly::MacAddress sa, thrift::MeshPathFramePANN pann) {
   VLOG(8) << folly::sformat("Routing::{}({}, ...)", __func__, sa.toString());
 
-  folly::MacAddress origAddr{folly::MacAddress::fromNBO(pann.origAddr)};
-  uint64_t origSn{pann.origSn};
-  uint8_t hopCount{pann.hopCount};
+  folly::MacAddress origAddr{folly::MacAddress::fromNBO(*pann.origAddr_ref())};
+  uint64_t origSn{*pann.origSn_ref()};
+  uint8_t hopCount{*pann.hopCount_ref()};
   hopCount++;
-  uint32_t origMetric{pann.metric};
-  uint8_t ttl{pann.ttl};
-  folly::MacAddress targetAddr{folly::MacAddress::fromNBO(pann.targetAddr)};
+  uint32_t origMetric{*pann.metric_ref()};
+  uint8_t ttl{*pann.ttl_ref()};
+  folly::MacAddress targetAddr{
+      folly::MacAddress::fromNBO(*pann.targetAddr_ref())};
 
   /*  Ignore our own PANNs */
   if (origAddr == nodeAddr_) {
@@ -238,7 +239,8 @@ Routing::hwmpPannFrameProcess(
   }
 
   VLOG(8) << "received PANN from " << origAddr << " via neighbour " << sa
-           << " target " << targetAddr << " (is_gate=" << pann.isGate << ")";
+          << " target " << targetAddr << " (is_gate=" << *pann.isGate_ref()
+          << ")";
 
   const auto stas = metricManager_->getLinkMetrics();
 
@@ -291,7 +293,7 @@ Routing::hwmpPannFrameProcess(
 
   const auto topKGatesOldHasOrig = isStationInTopKGates(origAddr);
 
-  if (pann.isGate &&
+  if (*pann.isGate_ref() &&
       std::count_if(
           meshPaths_.begin(),
           meshPaths_.end(),
@@ -308,10 +310,10 @@ Routing::hwmpPannFrameProcess(
   mpath.nextHop = sa;
   mpath.nextHopMetric = lastHopMetric;
   mpath.hopCount = hopCount;
-  mpath.isGate = pann.isGate;
+  mpath.isGate = *pann.isGate_ref();
   mpath.expTime = std::chrono::steady_clock::now() + activePathTimeout_;
 
-  if (pann.replyRequested) {
+  if (*pann.replyRequested_ref()) {
     txPannFrame(
         mpath.nextHop,
         nodeAddr_,
@@ -332,7 +334,7 @@ Routing::hwmpPannFrameProcess(
   const auto topKGatesNewHasOrig = isStationInTopKGates(origAddr);
 
   if (targetAddr != nodeAddr_ &&
-      (!pann.isGate || topKGatesOldHasOrig || topKGatesNewHasOrig)) {
+      (!(*pann.isGate_ref()) || topKGatesOldHasOrig || topKGatesNewHasOrig)) {
     txPannFrame(
         da,
         origAddr,
@@ -341,8 +343,8 @@ Routing::hwmpPannFrameProcess(
         ttl,
         targetAddr,
         newMetric,
-        pann.isGate,
-        pann.replyRequested);
+        *pann.isGate_ref(),
+        *pann.replyRequested_ref());
   }
 }
 

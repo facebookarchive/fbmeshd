@@ -328,9 +328,9 @@ TEST_F(Nl80211HandlerTest, Nl80211HandlerGetMesh) {
 
   nlHandler.joinMeshes();
   thrift::Mesh mesh = nlHandler.getMesh();
-  ASSERT_EQ(mesh.frequency, 2412);
-  ASSERT_EQ(mesh.centerFreq1, 2412);
-  ASSERT_EQ(mesh.channelWidth, 1);
+  ASSERT_EQ(*mesh.frequency_ref(), 2412);
+  ASSERT_EQ(*mesh.centerFreq1_ref(), 2412);
+  ASSERT_EQ(*mesh.channelWidth_ref(), 1);
 }
 
 int

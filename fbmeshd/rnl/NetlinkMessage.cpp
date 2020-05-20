@@ -17,7 +17,7 @@
 #include <fbmeshd/rnl/NetlinkSocket.h>
 
 #ifdef FOLLY_COLLECT_IS_SEMI
-#define collectAllSemiFuture collectAll
+#define collectAll collectAll
 #endif
 
 namespace rnl {
@@ -473,7 +473,7 @@ NetlinkProtocolSocket::getReturnStatus(
   }
 
   // Collect request status(es) from the request message futures
-  auto all = collectAllSemiFuture(futures.begin(), futures.end());
+  auto all = collectAll(futures.begin(), futures.end());
   // Wait for Netlink Ack (which sets the promise value)
   if (std::move(all).wait(timeout)) {
     // Collect statuses from individual futures

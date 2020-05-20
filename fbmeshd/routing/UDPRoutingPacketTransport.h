@@ -40,7 +40,12 @@ class UDPRoutingPacketTransport : public folly::AsyncUDPServerSocket::Callback {
       std::shared_ptr<folly::AsyncUDPSocket> socket,
       const folly::SocketAddress& client,
       std::unique_ptr<folly::IOBuf> data,
+#ifdef USE_ON_DATA_AVAILABLE
+      bool truncated,
+      OnDataAvailableParams params) noexcept override;
+#else
       bool truncated) noexcept override;
+#endif
 
   folly::EventBase* evb_;
 

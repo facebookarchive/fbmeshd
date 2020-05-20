@@ -28,8 +28,7 @@ const auto kMeshHousekeepingInterval{60s};
 const auto kMeshPathExpire{60s};
 const auto kMinGatewayRedundancy{2};
 
-void
-meshPathExpire(
+void meshPathExpire(
     std::unordered_map<folly::MacAddress, Routing::MeshPath>& paths) {
   for (auto it = paths.begin(); it != paths.end();) {
     const auto& mpath = it->second;
@@ -54,19 +53,21 @@ Routing::Routing(
       nodeAddr_{nodeAddr},
       elementTtl_{elementTtl},
       metricManager_{metricManager},
-      noLongerAGateRANNTimer_{folly::AsyncTimeout::make(
-          *evb_, [this]() noexcept { isRoot_ = false; })},
-      housekeepingTimer_{folly::AsyncTimeout::make(
-          *evb_, [this]() noexcept { doMeshHousekeeping(); })},
-      meshPathRootTimer_{folly::AsyncTimeout::make(
-          *evb_, [this]() noexcept { doMeshPathRoot(); })},
+      noLongerAGateRANNTimer_{
+          folly::AsyncTimeout::
+              make(*evb_, [this]() noexcept { isRoot_ = false; })},
+      housekeepingTimer_{
+          folly::AsyncTimeout::
+              make(*evb_, [this]() noexcept { doMeshHousekeeping(); })},
+      meshPathRootTimer_{
+          folly::AsyncTimeout::
+              make(*evb_, [this]() noexcept { doMeshPathRoot(); })},
       activePathTimeout_{activePathTimeout},
       rootPannInterval_{rootPannInterval} {
   evb_->runInEventBaseThread([this]() { prepare(); });
 }
 
-void
-Routing::prepare() {
+void Routing::prepare() {
   doMeshPathRoot();
   doMeshHousekeeping();
 }
@@ -90,8 +91,7 @@ Routing::getMeshPaths() {
  * Misc utility functions
  */
 
-Routing::MeshPath&
-Routing::getMeshPath(folly::MacAddress addr) {
+Routing::MeshPath& Routing::getMeshPath(folly::MacAddress addr) {
   return meshPaths_
       .emplace(
           std::piecewise_construct,
@@ -104,15 +104,13 @@ Routing::getMeshPath(folly::MacAddress addr) {
  * Timer callbacks
  */
 
-void
-Routing::doMeshHousekeeping() {
+void Routing::doMeshHousekeeping() {
   VLOG(8) << folly::sformat("Routing::{}()", __func__);
   meshPathExpire(meshPaths_);
   housekeepingTimer_->scheduleTimeout(kMeshHousekeepingInterval);
 }
 
-void
-Routing::doMeshPathRoot() {
+void Routing::doMeshPathRoot() {
   VLOG(8) << folly::sformat("Routing::{}()", __func__);
   if (isRoot_) {
     txPannFrame(
@@ -134,8 +132,7 @@ Routing::doMeshPathRoot() {
  * Transmit path / path discovery
  */
 
-void
-Routing::txPannFrame(
+void Routing::txPannFrame(
     folly::MacAddress da,
     folly::MacAddress origAddr,
     uint64_t origSn,
@@ -149,7 +146,7 @@ Routing::txPannFrame(
 
   std::string skb;
   VLOG(8) << "sending PANN orig:" << origAddr << " target:" << targetAddr
-           << " dst:" << da.toString();
+          << " dst:" << da.toString();
   serializer_.serialize(
       thrift::MeshPathFramePANN{
           apache::thrift::FRAGILE,
@@ -177,26 +174,25 @@ Routing::txPannFrame(
  * Receive path processing
  */
 
-void
-Routing::receivePacket(
-    folly::MacAddress sa, std::unique_ptr<folly::IOBuf> data) {
+void Routing::receivePacket(
+    folly::MacAddress sa,
+    std::unique_ptr<folly::IOBuf> data) {
   VLOG(8) << folly::sformat("Routing::{}()", __func__);
   auto action = static_cast<MeshPathFrameType>(*data->data());
   data->trimStart(1);
 
   thrift::MeshPathFramePANN pann;
   switch (action) {
-  case MeshPathFrameType::PANN:
-    serializer_.deserialize(data.get(), pann);
-    hwmpPannFrameProcess(sa, pann);
-    break;
-  default:
-    return;
+    case MeshPathFrameType::PANN:
+      serializer_.deserialize(data.get(), pann);
+      hwmpPannFrameProcess(sa, pann);
+      break;
+    default:
+      return;
   }
 }
 
-bool
-Routing::isStationInTopKGates(folly::MacAddress mac) {
+bool Routing::isStationInTopKGates(folly::MacAddress mac) {
   std::vector<std::pair<uint32_t, folly::MacAddress>> ret;
 
   for (const auto& mpath : meshPaths_) {
@@ -219,19 +215,33 @@ Routing::isStationInTopKGates(folly::MacAddress mac) {
   return false;
 }
 
-void
-Routing::hwmpPannFrameProcess(
-    folly::MacAddress sa, thrift::MeshPathFramePANN pann) {
+void Routing::hwmpPannFrameProcess(
+    folly::MacAddress sa,
+    thrift::MeshPathFramePANN pann) {
   VLOG(8) << folly::sformat("Routing::{}({}, ...)", __func__, sa.toString());
 
+#ifdef USE_THRIFT_FIELD_REF_API
   folly::MacAddress origAddr{folly::MacAddress::fromNBO(*pann.origAddr_ref())};
   uint64_t origSn{*pann.origSn_ref()};
   uint8_t hopCount{*pann.hopCount_ref()};
-  hopCount++;
   uint32_t origMetric{*pann.metric_ref()};
   uint8_t ttl{*pann.ttl_ref()};
   folly::MacAddress targetAddr{
       folly::MacAddress::fromNBO(*pann.targetAddr_ref())};
+  bool isGate{*pann.isGate_ref()};
+  bool replyRequested{*pann.replyRequested_ref()};
+#else
+  folly::MacAddress origAddr{folly::MacAddress::fromNBO(pann.origAddr)};
+  uint64_t origSn{pann.origSn};
+  uint8_t hopCount{pann.hopCount};
+  uint32_t origMetric{pann.metric};
+  uint8_t ttl{pann.ttl};
+  folly::MacAddress targetAddr{
+      folly::MacAddress::fromNBO(pann.targetAddr)};
+  bool isGate{pann.isGate};
+  bool replyRequested{pann.replyRequested};
+#endif
+  hopCount++;
 
   /*  Ignore our own PANNs */
   if (origAddr == nodeAddr_) {
@@ -239,8 +249,7 @@ Routing::hwmpPannFrameProcess(
   }
 
   VLOG(8) << "received PANN from " << origAddr << " via neighbour " << sa
-          << " target " << targetAddr << " (is_gate=" << *pann.isGate_ref()
-          << ")";
+          << " target " << targetAddr << " (is_gate=" << isGate << ")";
 
   const auto stas = metricManager_->getLinkMetrics();
 
@@ -285,15 +294,14 @@ Routing::hwmpPannFrameProcess(
   if (!mpath.expired() &&
       (mpath.sn > origSn ||
        (mpath.nextHop != sa && mpath.metric <= newMetric))) {
-    VLOG(8) << "discarding PANN - mpath.sn:" << mpath.sn
-             << " origSn:" << origSn << " newMetric" << newMetric
-             << " mpath.metric" << mpath.metric;
+    VLOG(8) << "discarding PANN - mpath.sn:" << mpath.sn << " origSn:" << origSn
+            << " newMetric" << newMetric << " mpath.metric" << mpath.metric;
     return;
   }
 
   const auto topKGatesOldHasOrig = isStationInTopKGates(origAddr);
 
-  if (*pann.isGate_ref() &&
+  if (isGate &&
       std::count_if(
           meshPaths_.begin(),
           meshPaths_.end(),
@@ -310,10 +318,10 @@ Routing::hwmpPannFrameProcess(
   mpath.nextHop = sa;
   mpath.nextHopMetric = lastHopMetric;
   mpath.hopCount = hopCount;
-  mpath.isGate = *pann.isGate_ref();
+  mpath.isGate = isGate;
   mpath.expTime = std::chrono::steady_clock::now() + activePathTimeout_;
 
-  if (*pann.replyRequested_ref()) {
+  if (replyRequested) {
     txPannFrame(
         mpath.nextHop,
         nodeAddr_,
@@ -334,7 +342,7 @@ Routing::hwmpPannFrameProcess(
   const auto topKGatesNewHasOrig = isStationInTopKGates(origAddr);
 
   if (targetAddr != nodeAddr_ &&
-      (!(*pann.isGate_ref()) || topKGatesOldHasOrig || topKGatesNewHasOrig)) {
+      (!isGate || topKGatesOldHasOrig || topKGatesNewHasOrig)) {
     txPannFrame(
         da,
         origAddr,
@@ -343,8 +351,8 @@ Routing::hwmpPannFrameProcess(
         ttl,
         targetAddr,
         newMetric,
-        *pann.isGate_ref(),
-        *pann.replyRequested_ref());
+        isGate,
+        replyRequested);
   }
 }
 
@@ -352,16 +360,14 @@ Routing::hwmpPannFrameProcess(
  * Management / Control functions
  */
 
-bool
-Routing::getGatewayStatus() const {
+bool Routing::getGatewayStatus() const {
   bool isGate{};
   evb_->runImmediatelyOrRunInEventBaseThreadAndWait(
       [&isGate, this]() { isGate = isGate_; });
   return isGate;
 }
 
-void
-Routing::setGatewayStatus(bool isGate) {
+void Routing::setGatewayStatus(bool isGate) {
   evb_->runInEventBaseThread([isGate, this]() {
     if (isGate_ == isGate) {
       return;
@@ -380,8 +386,7 @@ Routing::setGatewayStatus(bool isGate) {
   });
 }
 
-std::unordered_map<folly::MacAddress, Routing::MeshPath>
-Routing::dumpMpaths() {
+std::unordered_map<folly::MacAddress, Routing::MeshPath> Routing::dumpMpaths() {
   VLOG(8) << folly::sformat("Routing::{}()", __func__);
   std::unordered_map<folly::MacAddress, Routing::MeshPath> mpaths;
   evb_->runImmediatelyOrRunInEventBaseThreadAndWait(
@@ -389,8 +394,7 @@ Routing::dumpMpaths() {
   return mpaths;
 }
 
-void
-Routing::setSendPacketCallback(
+void Routing::setSendPacketCallback(
     std::function<void(folly::MacAddress, std::unique_ptr<folly::IOBuf>)> cb) {
   if (evb_->isRunning()) {
     evb_->runImmediatelyOrRunInEventBaseThreadAndWait(
@@ -400,8 +404,7 @@ Routing::setSendPacketCallback(
   }
 }
 
-void
-Routing::resetSendPacketCallback() {
+void Routing::resetSendPacketCallback() {
   if (evb_->isRunning()) {
     evb_->runImmediatelyOrRunInEventBaseThreadAndWait(
         [this]() { sendPacketCallback_.reset(); });

@@ -35,7 +35,12 @@ UDPRoutingPacketTransport::onDataAvailable(
     std::shared_ptr<folly::AsyncUDPSocket> /* socket */,
     const folly::SocketAddress& client,
     std::unique_ptr<folly::IOBuf> data,
+#ifdef USE_ON_DATA_AVAILABLE
+    bool /* truncated */,
+    OnDataAvailableParams) noexcept {
+#else
     bool /* truncated */) noexcept {
+#endif
   if (receivePacketCallback_) {
     (*receivePacketCallback_)(
         *client.getIPAddress().asV6().getMacAddressFromLinkLocal(),

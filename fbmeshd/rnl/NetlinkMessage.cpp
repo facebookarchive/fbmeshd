@@ -16,8 +16,8 @@
 #include <fbmeshd/rnl/NetlinkRoute.h>
 #include <fbmeshd/rnl/NetlinkSocket.h>
 
-#ifdef FOLLY_COLLECT_IS_SEMI
-#define collectAll collectAll
+#ifndef FOLLY_COLLECT_IS_SEMI
+#define collectAll collectAll##Semi##Future
 #endif
 
 namespace rnl {

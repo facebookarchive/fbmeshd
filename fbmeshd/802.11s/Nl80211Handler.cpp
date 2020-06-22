@@ -84,7 +84,7 @@ DEFINE_uint32(mesh_hwmp_rann_interval, 3000, "HWMP RANN interval");
 DEFINE_uint32(mesh_mtu, 1520, "The MTU value to set for the mesh device");
 
 DEFINE_string(
-    mesh_init_peering_whitelist,
+    mesh_init_peering_allowed_macs,
     "",
     "Comma-separated list of MAC addresses that we will attempt to initiate "
     "peering with from this station; if another station initiates peering, "
@@ -1373,9 +1373,9 @@ Nl80211Handler::handleNewCandidate(const GenericNetlinkMessage& msg) {
     return ERR_INVALID_ARGUMENT_VALUE;
   }
 
-  if (!FLAGS_mesh_init_peering_whitelist.empty()) {
+  if (!FLAGS_mesh_init_peering_allowed_macs.empty()) {
     auto allowed_peers = ::parseCsvFlag<folly::MacAddress>(
-        FLAGS_mesh_init_peering_whitelist,
+        FLAGS_mesh_init_peering_allowed_macs,
         [](std::string str) { return folly::MacAddress{str}; });
 
     if (std::find(allowed_peers.begin(), allowed_peers.end(), mac_addr) ==

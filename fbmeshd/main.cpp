@@ -151,7 +151,7 @@ namespace {
 // that are open-sourced. It is used to allow an end user of an fbmeshd
 // executable to identify what code version it was built from.
 // TODO T56294978: Find a way to embed this without having to manually touch it
-constexpr uint32_t kFbmeshdVersion{8};
+constexpr uint32_t kFbmeshdVersion{9};
 
 constexpr folly::StringPiece kHostName{"localhost"};
 

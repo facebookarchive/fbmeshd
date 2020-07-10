@@ -65,7 +65,7 @@ thrift_object(
   "fbmeshd" #file_name
   "MeshService" #services
   "cpp2" #language
-  "json,optionals" #options
+  "json" #options
   "${CMAKE_SOURCE_DIR}/fbmeshd/if" #file_path
   "${THRIFT_DIR}/fbmeshd/if" #output_path
   "fbmeshd/if" #include_prefix

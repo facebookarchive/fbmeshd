@@ -16,7 +16,7 @@ Devices must be using a Qualcomm chipset and have support for `ath10k` drivers.
 `fbmeshd` is built using `CMake`. To run an `fbmeshd` mesh, you need to build and
 install `fbmeshd` on a wireless device such as an access point.
 
-`fbmeshd` can be started using the command in `scripts/`
+`fbmeshd` can be easily started using the command in `scripts/`
 ```
 $ run_fbmeshd.sh
 ```
@@ -28,7 +28,7 @@ Take a look at [`CONTRIBUTING.md`](CONTRIBUTING.md) to get started contributing.
 
 ## Code of Conduct
 
-The code of conduct is described in [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
+The code of conduct is briefly described in [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
 
 ## License
 
